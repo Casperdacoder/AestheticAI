@@ -1,35 +1,122 @@
-import React, { useState } from 'react';
-import { View, Text, Alert } from 'react-native';
-import { Button, colors, Toast } from '../components/UI';
+﻿import React, { useState } from 'react';
+import { View, Text, Alert, StyleSheet, ScrollView } from 'react-native';
+import { Screen, Button, colors, Toast } from '../components/UI';
+
+const BENEFITS = [
+  'Unlimited AI layout suggestions',
+  'Multi-room analysis',
+  'Custom color palettes',
+  '3D visualizations',
+  'Expert décor tips',
+  'Personalized design advice',
+  'Unlimited saved projects',
+  'Smart furniture recommendations',
+  'Priority support',
+  'Learns your style over time'
+];
 
 export default function ManageSubscriptionScreen() {
   const [cancelled, setCancelled] = useState(false);
-  const onCancel = () => {
-    Alert.alert('Cancel Subscription', 'Are you sure you want to cancel?', [
-      { text:'No' },
-      { text:'Yes', onPress:()=>{ setCancelled(true); setTimeout(()=>setCancelled(false),1600); } }
+
+  const confirmCancellation = () => {
+    Alert.alert('Cancel Subscription', 'If you cancel, you will lose premium features after the billing period.', [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Yes',
+        style: 'destructive',
+        onPress: () => {
+          setCancelled(true);
+          setTimeout(() => setCancelled(false), 2000);
+        }
+      }
     ]);
   };
 
   return (
-    <View style={{ flex:1, padding:16 }}>
-      <Toast visible={cancelled} text="Your subscription has been successfully cancelled." onClose={()=>setCancelled(false)} />
-      <Text style={{ color: colors.teal, fontSize:22, fontWeight:'800', marginBottom:10 }}>Manage Subscription</Text>
-      <Text style={{ marginBottom:4 }}>Plan: Premium</Text>
-      <Text style={{ marginBottom:4 }}>Renew on: Date</Text>
-      <Text style={{ marginBottom:12 }}>Status: Active</Text>
+    <Screen style={styles.screen}>
+      <Toast
+        visible={cancelled}
+        text="Your subscription has been successfully cancelled."
+        onClose={() => setCancelled(false)}
+        variant="danger"
+      />
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <Text style={styles.heading}>Manage Subscription</Text>
+        <View style={styles.metaBlock}>
+          <Text style={styles.metaLabel}>Plan:</Text>
+          <Text style={styles.metaValue}>Premium</Text>
+          <Text style={styles.metaLabel}>Renew on:</Text>
+          <Text style={styles.metaValue}>Date</Text>
+          <Text style={styles.metaLabel}>Status:</Text>
+          <Text style={styles.metaValue}>Active</Text>
+        </View>
 
-      <Text style={{ fontWeight:'700', marginBottom:6 }}>Current Plan:</Text>
-      {[
-        'Unlimited AI layout suggestions',
-        'Multi-room analysis',
-        'Custom color palettes',
-        '3D visualizations',
-        'Expert décor tips',
-        'Personalized design advice'
-      ].map(t => <Text key={t}>• {t}</Text>)}
+        <Text style={styles.sectionTitle}>Current Plan:</Text>
+        <View style={styles.list}>
+          {BENEFITS.map((item) => (
+            <Text key={item} style={styles.listItem}>- {item}</Text>
+          ))}
+        </View>
 
-      <Button title="Cancel Subscription" onPress={onCancel} style={{ marginTop:18, backgroundColor:'#fee2e2' }} textStyle={{ color:'#111' }}/>
-    </View>
+        <Button
+          title="Cancel Subscription"
+          onPress={confirmCancellation}
+          variant="outline"
+          style={styles.cancelButton}
+          textStyle={styles.cancelText}
+        />
+      </ScrollView>
+    </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    paddingTop: 56
+  },
+  scroll: {
+    paddingBottom: 40
+  },
+  heading: {
+    color: colors.subtleText,
+    fontSize: 26,
+    fontWeight: '800',
+    marginBottom: 24
+  },
+  metaBlock: {
+    gap: 4,
+    marginBottom: 24
+  },
+  metaLabel: {
+    color: colors.mutedAlt,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontSize: 12
+  },
+  metaValue: {
+    color: colors.subtleText,
+    fontWeight: '600'
+  },
+  sectionTitle: {
+    color: colors.subtleText,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12
+  },
+  list: {
+    gap: 8
+  },
+  listItem: {
+    color: colors.subtleText,
+    lineHeight: 22
+  },
+  cancelButton: {
+    marginTop: 32,
+    borderColor: colors.danger,
+    borderWidth: 1.5,
+    backgroundColor: 'rgba(210,74,67,0.08)'
+  },
+  cancelText: {
+    color: colors.danger
+  }
+});

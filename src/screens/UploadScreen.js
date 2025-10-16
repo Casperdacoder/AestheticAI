@@ -1,60 +1,139 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal } from 'react-native';
-import { colors } from '../components/UI';
+﻿import React, { useState } from 'react';
+import { Text, TouchableOpacity, Modal, StyleSheet, View } from 'react-native';
+import { Screen, colors } from '../components/UI';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function UploadScreen({ navigation }) {
   const [pickerVisible, setPickerVisible] = useState(false);
-  const [uri, setUri] = useState(null);
+
+  const handleResult = (result) => {
+    if (!result.canceled) {
+      const uri = result.assets[0].uri;
+      navigation.navigate('DesignDetail', { uploadedUri: uri });
+    }
+  };
 
   const openCamera = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') return;
-    const res = await ImagePicker.launchCameraAsync({ quality:0.8 });
-    if (!res.canceled) {
-      setUri(res.assets[0].uri);
-      navigation.navigate('DesignDetail', { uploadedUri: res.assets[0].uri });
-    }
+    const res = await ImagePicker.launchCameraAsync({ quality: 0.85 });
+    handleResult(res);
   };
 
   const openLibrary = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') return;
-    const res = await ImagePicker.launchImageLibraryAsync({ quality:0.8 });
-    if (!res.canceled) {
-      setUri(res.assets[0].uri);
-      navigation.navigate('DesignDetail', { uploadedUri: res.assets[0].uri });
-    }
+    const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.85 });
+    handleResult(res);
   };
 
   return (
-    <View style={{ flex:1, padding:16 }}>
-      <Text style={{ color: colors.teal, fontSize:22, fontWeight:'800', marginBottom:10 }}>Upload a Photo</Text>
-      <TouchableOpacity
-        onPress={()=>setPickerVisible(true)}
-        style={{ height:280, borderRadius:14, borderWidth:1, borderStyle:'dashed', borderColor:'#cbd5e1', alignItems:'center', justifyContent:'center', backgroundColor:'#e5e7eb' }}
-      >
-        <Ionicons name="cloud-upload-outline" size={42} color={colors.teal} />
-        <Text style={{ marginTop:8, color: colors.teal, fontWeight:'700' }}>Upload</Text>
+    <Screen style={styles.screen}>
+      <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.6}>
+        <Text style={styles.back}>Back</Text>
+      </TouchableOpacity>
+      <Text style={styles.heading}>Upload a Photo</Text>
+      <TouchableOpacity onPress={() => setPickerVisible(true)} activeOpacity={0.7} style={styles.dropzone}>
+        <Ionicons name="cloud-upload-outline" size={42} color={colors.primary} />
+        <Text style={styles.dropzoneLabel}>Upload</Text>
       </TouchableOpacity>
 
-      <Modal transparent visible={pickerVisible} animationType="fade" onRequestClose={()=>setPickerVisible(false)}>
-        <View style={{ flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'rgba(0,0,0,0.35)', padding:22 }}>
-          <View style={{ backgroundColor:'#fff', width:'100%', borderRadius:14, overflow:'hidden' }}>
-            <View style={{ padding:16 }}><Text style={{ color: colors.teal, fontWeight:'800' }}>Select Media Source</Text></View>
-            <TouchableOpacity onPress={()=>{ setPickerVisible(false); openCamera(); }} style={{ padding:16, flexDirection:'row', alignItems:'center', gap:12 }}>
-              <Ionicons name="camera-outline" size={22} color={colors.teal} /><Text>Take photo from camera</Text>
+      <Modal transparent visible={pickerVisible} animationType="fade" onRequestClose={() => setPickerVisible(false)}>
+        <View style={styles.sheetOverlay}>
+          <View style={styles.sheet}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Select Media Source</Text>
+              <TouchableOpacity onPress={() => setPickerVisible(false)}>
+                <Ionicons name="close" size={20} color={colors.subtleText} />
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              onPress={() => {
+                setPickerVisible(false);
+                openCamera();
+              }}
+              style={styles.sheetAction}
+            >
+              <Ionicons name="camera-outline" size={22} color={colors.primary} />
+              <Text style={styles.sheetActionText}>Take photo from camera</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={()=>{ setPickerVisible(false); openLibrary(); }} style={{ padding:16, flexDirection:'row', alignItems:'center', gap:12 }}>
-              <Ionicons name="image-outline" size={22} color={colors.teal} /><Text>Choose from the gallery</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={()=>setPickerVisible(false)} style={{ padding:14, alignItems:'center' }}>
-              <Text style={{ color: colors.teal, fontWeight:'700' }}>Close</Text>
+            <TouchableOpacity
+              onPress={() => {
+                setPickerVisible(false);
+                openLibrary();
+              }}
+              style={styles.sheetAction}
+            >
+              <Ionicons name="image-outline" size={22} color={colors.primary} />
+              <Text style={styles.sheetActionText}>Choose from the gallery</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-    </View>
+    </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    paddingTop: 56
+  },
+  back: {
+    color: colors.mutedAlt,
+    fontSize: 16,
+    marginBottom: 24
+  },
+  heading: {
+    color: colors.subtleText,
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 24
+  },
+  dropzone: {
+    height: 280,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: colors.outline,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    gap: 12
+  },
+  dropzoneLabel: {
+    color: colors.subtleText,
+    fontWeight: '700'
+  },
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end'
+  },
+  sheet: {
+    backgroundColor: colors.surface,
+    padding: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    gap: 18
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  sheetTitle: {
+    color: colors.subtleText,
+    fontWeight: '700',
+    fontSize: 18
+  },
+  sheetAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16
+  },
+  sheetActionText: {
+    color: colors.subtleText,
+    fontSize: 16
+  }
+});

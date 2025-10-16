@@ -1,8 +1,10 @@
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+﻿import { initializeApp, getApps } from 'firebase/app';
+import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 // 1) Try to read from app.config.js (optional)
 const extra = Constants?.expoConfig?.extra ?? Constants?.manifest?.extra ?? {};
@@ -25,12 +27,24 @@ const fromInline = {
 // 3) Merge (values in fromInline win over fromExtra to avoid missing keys)
 const firebaseConfig = { ...fromExtra, ...fromInline };
 
-// Safety log (remove later)
-console.log('🔥 Firebase config in use:', firebaseConfig);
 
 // 4) Init (guard against re-init)
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
-export const auth = getAuth(app);
+let auth;
+
+if (Platform.OS === 'web') {
+  auth = getAuth(app);
+} else {
+    try {
+      auth = initializeAuth(app, {
+        persistence: getReactNativePersistence(AsyncStorage)
+      });
+    } catch (error) {
+      auth = getAuth(app);
+    }
+}
+
+export { auth };
 export const db = getFirestore(app);
 export const storage = getStorage(app);

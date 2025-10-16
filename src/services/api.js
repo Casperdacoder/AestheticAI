@@ -1,3 +1,4 @@
+/* NOTE: The photo 'scan' logic is still a no-op - it never sees the actual pixels, so anything from a notebook to a selfie looks like a generic room, and the customization flow keeps falling back to the same interior template. Every attempt to patch it has been stymied because the project doesn't have a real vision service wired up (there isn't even local Python on this machine), so the analyzeRoomPhoto stub remains. Until you add a backend that can detect whether an image is an interior - or otherwise provide stronger heuristics - the app will keep returning that canned room design regardless of what you upload. */
 import axios from 'axios';
 import Constants from 'expo-constants';
 
@@ -18,4 +19,6 @@ export async function generateLayout({ imageUri, roomType, measurements }) {
 }
 
 export default api;
+
+
 

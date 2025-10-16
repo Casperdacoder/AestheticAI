@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, Switch, Alert, TouchableOpacity, ScrollView } from 'react-native';
-import { Input, Button, colors } from '../components/UI';
+﻿import React, { useState } from 'react';
+import { View, Text, Switch, Alert, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { Screen, Input, Button, colors } from '../components/UI';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../services/firebase';
+import { auth } from '../services/firebase';
+import { cacheUserRole } from '../services/userCache';
+import { saveProfile } from '../services/profileStore';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function RegisterScreen({ route, navigation }) {
   const role = route?.params?.role || 'user';
@@ -13,38 +16,134 @@ export default function RegisterScreen({ route, navigation }) {
   const [confirm, setConfirm] = useState('');
   const [agree, setAgree] = useState(false);
 
+  const validate = () => {
+    if (!name.trim()) {
+      Alert.alert('Registration', 'Please enter your name.');
+      return false;
+    }
+    if (!EMAIL_REGEX.test(email.trim())) {
+      Alert.alert('Registration', 'Please enter a valid email address.');
+      return false;
+    }
+    if (pass.length < 6) {
+      Alert.alert('Registration', 'Password must be at least 6 characters.');
+      return false;
+    }
+    if (pass !== confirm) {
+      Alert.alert('Registration', "Passwords don't match.");
+      return false;
+    }
+    if (!agree) {
+      Alert.alert('Terms', 'Please agree to the Terms & Conditions');
+      return false;
+    }
+    return true;
+  };
+
   const register = async () => {
+    if (!validate()) return;
     try {
-      if (!agree) return Alert.alert('Terms', 'Please agree to Privacy and Agreements');
-      if (pass !== confirm) return Alert.alert('Password', 'Passwords do not match');
-      const cred = await createUserWithEmailAndPassword(auth, email.trim(), pass);
-      await updateProfile(cred.user, { displayName: name });
-      await setDoc(doc(db, 'users', cred.user.uid), {
-        name, email: email.trim(), role, createdAt: serverTimestamp()
+      const credential = await createUserWithEmailAndPassword(auth, email.trim(), pass);
+      await updateProfile(credential.user, { displayName: name });
+
+      const profile = {
+        name,
+        email: email.trim(),
+        role,
+        createdAt: new Date().toISOString()
+      };
+
+      await saveProfile(credential.user.uid, profile);
+      await cacheUserRole(credential.user.uid, role);
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: role === 'designer' ? 'DesignerTabs' : 'UserTabs' }]
       });
-      navigation.reset({ index:0, routes:[{ name:'MainTabs' }] });
-    } catch (e) {
-      Alert.alert('Register Error', e.message);
+    } catch (error) {
+      Alert.alert('Register Error', error.message);
     }
   };
 
   return (
-    <ScrollView contentContainerStyle={{ padding:22 }}>
-      <Text style={{ color: colors.teal, fontSize:28, fontWeight:'800', marginBottom:12 }}>Create your account</Text>
-      <Input placeholder="Name" value={name} onChangeText={setName}/>
-      <Input placeholder="Email" keyboardType="email-address" autoCapitalize="none" value={email} onChangeText={setEmail}/>
-      <Input placeholder="Password" secureTextEntry value={pass} onChangeText={setPass}/>
-      <Input placeholder="Confirm Password" secureTextEntry value={confirm} onChangeText={setConfirm}/>
-
-      <View style={{ flexDirection:'row', alignItems:'center', marginBottom:12 }}>
-        <Switch value={agree} onValueChange={setAgree} trackColor={{ false:'#93c5fd', true:'#114D52' }}/>
-        <Text style={{ marginLeft:8 }}>I agree to <Text style={{ color: colors.teal, fontWeight:'700' }}>Privacy and Agreements</Text></Text>
-      </View>
-
-      <Button title="Register" onPress={register}/>
-      <TouchableOpacity onPress={()=>navigation.navigate('Login', { role })} style={{ marginTop:16 }}>
-        <Text style={{ textAlign:'center', color: colors.teal }}>Have an account? Login</Text>
+    <Screen style={styles.screen}>
+      <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.6}>
+        <Text style={styles.back}>Back</Text>
       </TouchableOpacity>
-    </ScrollView>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>Create your account</Text>
+        <Input placeholder="Name" value={name} onChangeText={setName} />
+        <Input
+          placeholder="Email"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <Input placeholder="Password" secureTextEntry value={pass} onChangeText={setPass} />
+        <Input placeholder="Confirm Password" secureTextEntry value={confirm} onChangeText={setConfirm} />
+
+        <View style={styles.agreementRow}>
+          <Switch
+            value={agree}
+            onValueChange={setAgree}
+            trackColor={{ false: colors.outline, true: colors.primary }}
+            thumbColor={agree ? colors.primaryText : '#E5E7EB'}
+          />
+          <Text style={styles.agreementText}>
+            I agree to <Text style={styles.agreementHighlight}>the Terms & Conditions</Text>
+          </Text>
+        </View>
+
+        <Button title="Register" onPress={register} />
+
+        <TouchableOpacity onPress={() => navigation.navigate('Login', { role })} style={styles.footerLink}>
+          <Text style={styles.footer}>Have an account? Login</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    paddingTop: 56
+  },
+  back: {
+    color: colors.mutedAlt,
+    fontSize: 16,
+    marginBottom: 16
+  },
+  scroll: {
+    paddingBottom: 40
+  },
+  title: {
+    color: colors.subtleText,
+    fontSize: 30,
+    fontWeight: '800',
+    marginBottom: 24
+  },
+  agreementRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 32
+  },
+  agreementText: {
+    color: colors.subtleText,
+    marginLeft: 12,
+    flex: 1,
+    lineHeight: 20
+  },
+  agreementHighlight: {
+    color: colors.accent,
+    fontWeight: '700'
+  },
+  footerLink: {
+    marginTop: 24
+  },
+  footer: {
+    textAlign: 'center',
+    color: colors.subtleText,
+    fontWeight: '600'
+  }
+});

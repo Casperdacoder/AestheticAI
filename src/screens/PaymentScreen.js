@@ -1,24 +1,89 @@
-import React, { useState } from 'react';
-import { View, Text } from 'react-native';
-import { Button, Input, colors, Toast } from '../components/UI';
+﻿import React, { useState } from 'react';
+import { View, Text, Image, StyleSheet } from 'react-native';
+import { Screen, Button, colors, Toast } from '../components/UI';
+
+const QR_PLACEHOLDER = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=AestheticAI';
 
 export default function PaymentScreen() {
-  const [num, setNum] = useState('');
   const [ok, setOk] = useState(false);
 
   const pay = () => {
-    if (!num) return;
-    setOk(true); setTimeout(()=>setOk(false), 1500);
+    setOk(true);
+    setTimeout(() => setOk(false), 1600);
   };
 
   return (
-    <View style={{ flex:1, padding:16 }}>
-      <Toast visible={ok} text="Pay successfully!" onClose={()=>setOk(false)} />
-      <Text style={{ color: colors.teal, fontSize:22, fontWeight:'800', marginBottom:10 }}>Pay with GCash</Text>
-      <Text style={{ marginBottom:6 }}>Plan: Yearly / Monthly</Text>
-      <Text style={{ marginBottom:10 }}>Enter GCash Number:</Text>
-      <Input placeholder="09xxxxxxxxx" keyboardType="numeric" value={num} onChangeText={setNum}/>
-      <Button title="Pay Now" onPress={pay}/>
-    </View>
+    <Screen style={styles.screen}>
+      <Toast visible={ok} text="Pay successfully!" onClose={() => setOk(false)} variant="success" />
+      <Text style={styles.heading}>Pay with GCash</Text>
+      <View style={styles.details}>
+        <Text style={styles.label}>Plan</Text>
+        <Text style={styles.value}>Yearly / Monthly</Text>
+      </View>
+      <Text style={styles.qrLabel}>Scan this QR CODE</Text>
+      <View style={styles.qrContainer}>
+        <Image source={{ uri: QR_PLACEHOLDER }} style={styles.qr} />
+      </View>
+      <View style={styles.meta}>
+        <Text style={styles.metaLine}>N****N P.</Text>
+        <Text style={styles.metaLine}>Mobile No: +63 912 345 ....</Text>
+      </View>
+      <Button title="Confirm Payment" onPress={pay} style={styles.action} />
+    </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    paddingTop: 56,
+    alignItems: 'center'
+  },
+  heading: {
+    color: colors.subtleText,
+    fontSize: 26,
+    fontWeight: '800',
+    marginBottom: 24
+  },
+  details: {
+    alignItems: 'center',
+    marginBottom: 16
+  },
+  label: {
+    color: colors.mutedAlt,
+    fontSize: 14,
+    letterSpacing: 1,
+    textTransform: 'uppercase'
+  },
+  value: {
+    color: colors.subtleText,
+    fontWeight: '600'
+  },
+  qrLabel: {
+    color: colors.subtleText,
+    marginBottom: 12
+  },
+  qrContainer: {
+    backgroundColor: colors.surface,
+    padding: 24,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.outline
+  },
+  qr: {
+    width: 220,
+    height: 220,
+    borderRadius: 12
+  },
+  meta: {
+    marginTop: 24,
+    alignItems: 'center'
+  },
+  metaLine: {
+    color: colors.subtleText,
+    fontSize: 16
+  },
+  action: {
+    marginTop: 36,
+    alignSelf: 'stretch'
+  }
+});

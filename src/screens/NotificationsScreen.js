@@ -1,17 +1,44 @@
-import React from 'react';
-import { View, Text } from 'react-native';
-import { colors } from '../components/UI';
+﻿import React from 'react';
+import { Text, View, StyleSheet } from 'react-native';
+import { Screen, colors } from '../components/UI';
+
+const DATA = [
+  'Your consultant shared new recommendations for your living room update.',
+  'Premium plan renewal confirmed. Enjoy uninterrupted access to AI tools.'
+];
 
 export default function NotificationsScreen() {
   return (
-    <View style={{ flex:1, padding:16 }}>
-      <Text style={{ color: colors.teal, fontSize:22, fontWeight:'800', marginBottom:10 }}>Notifications</Text>
-      <View style={{ backgroundColor:'#c2d3e2', padding:12, borderRadius:10, marginBottom:10 }}>
-        <Text>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed…</Text>
-      </View>
-      <View style={{ backgroundColor:'#c2d3e2', padding:12, borderRadius:10 }}>
-        <Text>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed…</Text>
-      </View>
-    </View>
+    <Screen style={styles.screen}>
+      <Text style={styles.title}>Notifications</Text>
+      {DATA.map((message, index) => (
+        <View key={index} style={styles.card}>
+          <Text style={styles.body}>{message}</Text>
+        </View>
+      ))}
+    </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    paddingTop: 56,
+    gap: 16
+  },
+  title: {
+    color: colors.subtleText,
+    fontSize: 24,
+    fontWeight: '700'
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: colors.outline
+  },
+  body: {
+    color: colors.subtleText,
+    lineHeight: 22
+  }
+});

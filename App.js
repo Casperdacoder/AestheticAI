@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { Animated, StyleSheet, Easing } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { warnMissingConfig } from './src/utils/configValidator';
 
 import { colors } from './src/components/UI';
 
@@ -16,12 +18,12 @@ import HomeScreen from './src/screens/HomeScreen';
 import ProjectsScreen from './src/screens/ProjectsScreen';
 import MessagesInboxScreen from './src/screens/MessagesInboxScreen';
 import AccountScreen from './src/screens/AccountScreen';
+import ConsultantScreen from './src/screens/ConsultantScreen';
 
 import UploadScreen from './src/screens/UploadScreen';
 import AssistantScreen from './src/screens/AssistantScreen';
 import AiResultScreen from './src/screens/AiResultScreen';
 import CustomizeAiScreen from './src/screens/CustomizeAiScreen';
-import ConsultantScreen from './src/screens/ConsultantScreen';
 import VideoCallScreen from './src/screens/VideoCallScreen';
 import DesignDetailScreen from './src/screens/DesignDetailScreen';
 import ProfileEditScreen from './src/screens/ProfileEditScreen';
@@ -33,73 +35,181 @@ import SecurityScreen from './src/screens/SecurityScreen';
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
 
-function MainTabs() {
+const USER_TAB_CONFIG = [
+  { name: 'Home', component: HomeScreen, icon: 'home-outline' },
+  { name: 'Messages', component: MessagesInboxScreen, icon: 'mail-outline' },
+  { name: 'Projects', component: ProjectsScreen, icon: 'folder-open-outline' },
+  { name: 'Account', component: AccountScreen, icon: 'person-circle-outline' }
+];
+
+const DESIGNER_TAB_CONFIG = [
+  { name: 'Studio', component: ConsultantScreen, icon: 'color-palette-outline' },
+  { name: 'Messages', component: MessagesInboxScreen, icon: 'chatbubble-ellipses-outline' },
+  { name: 'Projects', component: ProjectsScreen, icon: 'briefcase-outline' },
+  { name: 'Account', component: AccountScreen, icon: 'person-circle-outline' }
+];
+
+const tabIconStyles = StyleSheet.create({
+  container: {
+    width: 54,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.outline
+  },
+  focused: {
+    backgroundColor: colors.primary,
+    borderColor: 'transparent',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10
+  },
+  unfocused: {
+    backgroundColor: 'transparent',
+    shadowOpacity: 0,
+    elevation: 0
+  }
+});
+
+function AnimatedTabIcon({ iconName, focused }) {
+  const scale = useRef(new Animated.Value(focused ? 1 : 0.94)).current;
+  const opacity = useRef(new Animated.Value(focused ? 1 : 0.8)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scale, {
+        toValue: focused ? 1 : 0.94,
+        damping: 14,
+        stiffness: 160,
+        mass: 0.7,
+        useNativeDriver: true
+      }),
+      Animated.timing(opacity, {
+        toValue: focused ? 1 : 0.8,
+        duration: 200,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true
+      })
+    ]).start();
+  }, [focused, opacity, scale]);
+
+  return (
+    <Animated.View
+      style={[
+        tabIconStyles.container,
+        focused ? tabIconStyles.focused : tabIconStyles.unfocused,
+        { transform: [{ scale }], opacity }
+      ]}
+    >
+      <Ionicons
+        name={iconName}
+        size={22}
+        color={focused ? colors.primaryText : colors.mutedAlt}
+      />
+    </Animated.View>
+  );
+}
+
+function buildTabNavigator(tabs) {
   return (
     <Tabs.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: colors.teal,
-        tabBarStyle: { height: 62, paddingBottom: 10, paddingTop: 8 }
-      })}
+      screenOptions={({ route }) => {
+        const currentTab = tabs.find((tab) => tab.name === route.name);
+        const iconName = currentTab?.icon ?? 'grid-outline';
+        return {
+          headerShown: false,
+          tabBarShowLabel: true,
+          tabBarHideOnKeyboard: true,
+          tabBarActiveTintColor: colors.primaryText,
+          tabBarInactiveTintColor: colors.mutedAlt,
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '600',
+            marginBottom: 6
+          },
+          tabBarItemStyle: {
+            paddingVertical: 6
+          },
+          tabBarStyle: {
+            height: 84,
+            paddingBottom: 14,
+            paddingTop: 12,
+            backgroundColor: colors.surface,
+            borderTopWidth: 0,
+            elevation: 16,
+            shadowColor: '#000',
+            shadowOpacity: 0.18,
+            shadowRadius: 18,
+            shadowOffset: { width: 0, height: -6 }
+          },
+          tabBarIcon: ({ focused }) => (
+            <AnimatedTabIcon iconName={iconName} focused={focused} />
+          )
+        };
+      }}
     >
-      <Tabs.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" color={color} size={size} />
-        }}
-      />
-      <Tabs.Screen
-        name="Messages"
-        component={MessagesInboxScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => <Ionicons name="mail-outline" color={color} size={size} />
-        }}
-      />
-      <Tabs.Screen
-        name="Projects"
-        component={ProjectsScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => <Ionicons name="folder-open-outline" color={color} size={size} />
-        }}
-      />
-      <Tabs.Screen
-        name="Account"
-        component={AccountScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => <Ionicons name="person-circle-outline" color={color} size={size} />
-        }}
-      />
+      {tabs.map((tab) => (
+        <Tabs.Screen key={tab.name} name={tab.name} component={tab.component} />
+      ))}
     </Tabs.Navigator>
   );
 }
 
+function UserTabsNavigator() {
+  return buildTabNavigator(USER_TAB_CONFIG);
+}
+
+function DesignerTabsNavigator() {
+  return buildTabNavigator(DESIGNER_TAB_CONFIG);
+}
+
 export default function App() {
+  useEffect(() => {
+    warnMissingConfig();
+  }, []);
+
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown:false }}>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          animation: 'fade_from_bottom',
+          gestureEnabled: true,
+          fullScreenGestureEnabled: true,
+          contentStyle: { backgroundColor: colors.background }
+        }}
+      >
         {/* Landing + Auth */}
-        <Stack.Screen name="Landing" component={LandingScreen} />
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="Forgot" component={ForgotPasswordScreen} />
+        <Stack.Screen name="Landing" component={LandingScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Login" component={LoginScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="Register" component={RegisterScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="Forgot" component={ForgotPasswordScreen} options={{ animation: 'slide_from_right' }} />
 
         {/* Main */}
-        <Stack.Screen name="MainTabs" component={MainTabs} />
+        <Stack.Screen name="UserTabs" component={UserTabsNavigator} options={{ animation: 'fade' }} />
+        <Stack.Screen name="DesignerTabs" component={DesignerTabsNavigator} options={{ animation: 'fade' }} />
 
         {/* Feature Screens */}
-        <Stack.Screen name="Upload" component={UploadScreen} />
-        <Stack.Screen name="Assistant" component={AssistantScreen} />
-        <Stack.Screen name="AiResult" component={AiResultScreen} />
-        <Stack.Screen name="CustomizeAI" component={CustomizeAiScreen} />
-        <Stack.Screen name="Consultant" component={ConsultantScreen} />
-        <Stack.Screen name="VideoCall" component={VideoCallScreen} />
-        <Stack.Screen name="DesignDetail" component={DesignDetailScreen} />
-        <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
-        <Stack.Screen name="ManageSubscription" component={ManageSubscriptionScreen} />
-        <Stack.Screen name="Payment" component={PaymentScreen} />
-        <Stack.Screen name="Notifications" component={NotificationsScreen} />
-        <Stack.Screen name="Security" component={SecurityScreen} />
+        <Stack.Screen name="Upload" component={UploadScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="Consultant" component={ConsultantScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="Assistant" component={AssistantScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="AiResult" component={AiResultScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="CustomizeAI" component={CustomizeAiScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen
+          name="VideoCall"
+          component={VideoCallScreen}
+          options={{ presentation: 'modal', animation: 'fade' }}
+        />
+        <Stack.Screen name="DesignDetail" component={DesignDetailScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="ManageSubscription" component={ManageSubscriptionScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="Payment" component={PaymentScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="Security" component={SecurityScreen} options={{ animation: 'slide_from_right' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
