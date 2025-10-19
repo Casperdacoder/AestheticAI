@@ -1,5 +1,4 @@
-// app.config.js
-import 'dotenv/config';
+﻿import 'dotenv/config';
 
 export default {
   expo: {
@@ -39,8 +38,21 @@ export default {
         'READ_EXTERNAL_STORAGE',
         'WRITE_EXTERNAL_STORAGE',
         'READ_MEDIA_IMAGES'
-      ]
+      ],
+      package: 'com.mcclien.aestheticaiexpo'
     },
+    assetBundlePatterns: ['**/*'],
+
+    // ✅ Corrected EAS Update config
+    updates: {
+      url: "https://u.expo.dev/e34071e2-f237-4975-a8a9-354d342d5e59",
+      checkAutomatically: "ON_LOAD",
+      fallbackToCacheTimeout: 0
+    },
+    runtimeVersion: {
+      policy: "appVersion"
+    },
+
     extra: {
       firebase: {
         apiKey: process.env.FIREBASE_API_KEY,
@@ -53,15 +65,15 @@ export default {
       },
       huggingface: {
         token: process.env.HUGGINGFACE_TOKEN,
-        imageModel:
-          process.env.HUGGINGFACE_IMAGE_MODEL || 'Salesforce/blip-image-captioning-base',
-        textModel:
-          process.env.HUGGINGFACE_TEXT_MODEL || 'HuggingFaceH4/zephyr-7b-beta'
+        imageModel: process.env.HUGGINGFACE_IMAGE_MODEL || 'Salesforce/blip-image-captioning-base',
+        textModel: process.env.HUGGINGFACE_TEXT_MODEL || 'HuggingFaceH4/zephyr-7b-beta'
       },
       googleVision: {
         apiKey: process.env.GOOGLE_VISION_API_KEY
+      },
+      eas: {
+        projectId: 'e34071e2-f237-4975-a8a9-354d342d5e59'
       }
     }
   }
 };
-
