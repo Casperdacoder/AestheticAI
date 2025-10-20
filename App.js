@@ -16,6 +16,7 @@ import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 
 import HomeScreen from './src/screens/HomeScreen';
 import ProjectsScreen from './src/screens/ProjectsScreen';
+import BrowseScreen from './src/screens/BrowseScreen';
 import MessagesInboxScreen from './src/screens/MessagesInboxScreen';
 import AccountScreen from './src/screens/AccountScreen';
 import ConsultantScreen from './src/screens/ConsultantScreen';
@@ -33,15 +34,19 @@ import NotificationsScreen from './src/screens/NotificationsScreen';
 import SecurityScreen from './src/screens/SecurityScreen';
 import ChatScreen from './src/screens/ChatScreen';
 
+
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
 
 const USER_TAB_CONFIG = [
-  { name: 'Home', component: HomeScreen, icon: 'home-outline' },
-  { name: 'Messages', component: MessagesInboxScreen, icon: 'mail-outline' },
-  { name: 'Projects', component: ProjectsScreen, icon: 'folder-open-outline' },
-  { name: 'Account', component: AccountScreen, icon: 'person-circle-outline' }
+  { name: 'Home', component: HomeScreen, icon: 'home' },
+  { name: 'Messages', component: MessagesInboxScreen, icon: 'mail' },
+  { name: 'Browse', component: BrowseScreen, icon: 'people' },
+  { name: 'My Designs', component: ProjectsScreen, icon: 'folder-open' },
+  { name: 'Account', component: AccountScreen, icon: 'person-circle' }
 ];
+
+
 
 const DESIGNER_TAB_CONFIG = [
   { name: 'Studio', component: ConsultantScreen, icon: 'color-palette-outline' },

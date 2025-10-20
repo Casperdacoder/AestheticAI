@@ -67,21 +67,44 @@ export default function RegisterScreen({ route, navigation }) {
 
   return (
     <Screen style={styles.screen}>
-      <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.6}>
-        <Text style={styles.back}>Back</Text>
-      </TouchableOpacity>
+     
+
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>Create your account</Text>
-        <Input placeholder="Name" value={name} onChangeText={setName} />
+         <Text style={styles.subtitle}>Join us today! Create your account to get started</Text>
+
+        <Input
+          placeholder="Name"
+          value={name}
+          onChangeText={setName}
+          style={styles.input}
+        
+        />
         <Input
           placeholder="Email"
           keyboardType="email-address"
           autoCapitalize="none"
           value={email}
           onChangeText={setEmail}
+          style={styles.input}
+         
         />
-        <Input placeholder="Password" secureTextEntry value={pass} onChangeText={setPass} />
-        <Input placeholder="Confirm Password" secureTextEntry value={confirm} onChangeText={setConfirm} />
+        <Input
+          placeholder="Password"
+          secureTextEntry
+          value={pass}
+          onChangeText={setPass}
+          style={styles.input}
+         
+        />
+        <Input
+          placeholder="Confirm Password"
+          secureTextEntry
+          value={confirm}
+          onChangeText={setConfirm}
+          style={styles.input}
+        
+        />
 
         <View style={styles.agreementRow}>
           <Switch
@@ -91,8 +114,8 @@ export default function RegisterScreen({ route, navigation }) {
             thumbColor={agree ? colors.primaryText : '#E5E7EB'}
           />
           <Text style={styles.agreementText}>
-            I agree to <Text style={styles.agreementHighlight}>the Terms & Conditions</Text>
-          </Text>
+            I agree to theTerms & Conditions</Text>
+         
         </View>
 
         <Button title="Register" onPress={register} />
@@ -107,43 +130,57 @@ export default function RegisterScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   screen: {
-    paddingTop: 56
-  },
-  back: {
-    color: colors.mutedAlt,
-    fontSize: 16,
-    marginBottom: 16
+    flex: 1,
+    backgroundColor: '#E9E8E8',
+    paddingTop: 50,
+    paddingHorizontal: 20,
+   
   },
   scroll: {
-    paddingBottom: 40
+    paddingBottom: 40,
   },
   title: {
-    color: colors.subtleText,
-    fontSize: 30,
-    fontWeight: '800',
-    marginBottom: 24
+    color: '#0F3E48',
+    fontSize: 29,
+    fontWeight: '900',
+    fontFamily: 'serif',
+    marginTop: 70, 
+    textAlign: 'start',
+    marginBottom: 3,
+    marginLeft: 10,
+    marginRight: 10,
   },
+  subtitle: {
+    color: '#0F3E48',
+    fontSize: 15,
+     fontFamily: 'serif',
+    marginBottom: 32,
+    opacity: 0.8,
+    marginLeft: 10,
+    marginRight: 10,
+  },
+ 
   agreementRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 32
+    marginBottom: 10,
   },
   agreementText: {
-    color: colors.subtleText,
+    color: '#333',
     marginLeft: 12,
     flex: 1,
-    lineHeight: 20
-  },
-  agreementHighlight: {
-    color: colors.accent,
-    fontWeight: '700'
+    lineHeight: 20,
+     fontFamily: 'serif',
+
   },
   footerLink: {
-    marginTop: 24
+    marginTop: 24,
   },
   footer: {
-    textAlign: 'center',
-    color: colors.subtleText,
-    fontWeight: '600'
-  }
+     textAlign: 'center',
+    color: '#0F3E48',
+    fontWeight: '400',
+    fontSize: 15,
+    fontFamily: 'serif',
+  },
 });

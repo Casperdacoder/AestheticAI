@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator, StatusBar } from 'react-native';
 import { Screen, colors, Toast } from '../components/UI';
 import { Ionicons } from '@expo/vector-icons';
 import { auth } from '../services/firebase';
@@ -13,6 +13,7 @@ export default function MessagesInboxScreen({ navigation }) {
   const [toast, setToast] = useState(null);
   const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [notifications] = useState([]);
 
   useEffect(() => {
     if (typeof auth.onAuthStateChanged === 'function') {
@@ -121,24 +122,39 @@ export default function MessagesInboxScreen({ navigation }) {
   ) : null;
 
   const displayName = auth.currentUser?.displayName || (isDesigner ? 'Designer' : 'there');
+  const handleNotificationsPress = () => {
+    setToast({ message: 'Notifications opened.', variant: 'info' });
+    setTimeout(() => setToast(null), 1800);
+  };
 
   return (
     <Screen inset={false} style={styles.screen}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.surfaceMuted} />
       {toast ? (
         <Toast visible text={toast.message} onClose={() => setToast(null)} variant={toast.variant} />
       ) : null}
 
+      {/* Hero Section */}
       <View style={styles.hero}>
         <View style={styles.heroTop}>
           <View style={styles.identity}>
-            <View style={styles.avatar} />
-            <Ionicons
-              name={isDesigner ? 'ribbon-outline' : 'person-circle-outline'}
-              size={20}
-              color={colors.accent}
-            />
+            <View style={styles.avatar}>
+              <Ionicons
+                name={isDesigner ? 'color-palette-outline' : 'person-circle-outline'}
+                size={36}
+                color={colors.primaryText}
+              />
+            </View>
           </View>
-          <Ionicons name="notifications-outline" size={24} color={colors.primaryText} />
+
+          <TouchableOpacity onPress={handleNotificationsPress} style={styles.notificationWrapper}>
+            <Ionicons name="notifications-outline" size={42} color={colors.primaryText} />
+            {notifications.length > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{notifications.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
         <Text style={styles.welcome}>Welcome {displayName}!</Text>
         <Text style={styles.heroSubtitle}>
@@ -148,6 +164,7 @@ export default function MessagesInboxScreen({ navigation }) {
         </Text>
       </View>
 
+      {/* Messages Section */}
       <View style={styles.content}>
         <View style={styles.headingRow}>
           <Text style={styles.heading}>Conversations</Text>
@@ -239,18 +256,38 @@ const styles = StyleSheet.create({
   heroTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
+    marginBottom: 10,
   },
   identity: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12
+    gap: 10,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.surface
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notificationWrapper: { position: 'relative' },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#FF3B30',
+    borderRadius: 10,
+    width: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
   },
   welcome: {
     color: colors.primaryText,
@@ -266,7 +303,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingVertical: 24,
-    gap: 16
   },
   headingRow: {
     flexDirection: 'row',
@@ -276,7 +312,8 @@ const styles = StyleSheet.create({
   heading: {
     color: colors.subtleText,
     fontSize: 18,
-    fontWeight: '700'
+    fontWeight: '700',
+    marginBottom: 12,
   },
   separator: {
     height: 12
@@ -292,21 +329,33 @@ const styles = StyleSheet.create({
     gap: 16
   },
   leadingIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(14,82,88,0.12)',
     alignItems: 'center',
+    justifyContent: 'center'
+  },
+  messageIcon: {
+    marginRight: 12,
+  },
+  messageTextSection: {
+    flex: 1,
     justifyContent: 'center',
-    backgroundColor: colors.surfaceAlt
+  },
+  messageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   chatBody: {
     flex: 1,
     gap: 4
   },
   messageName: {
-    color: colors.primaryText,
+    color: '#000',
     fontWeight: '700',
-    fontSize: 16
+    fontSize: 15,
   },
   messagePreview: {
     color: colors.subtleText,

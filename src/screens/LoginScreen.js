@@ -37,24 +37,29 @@ export default function LoginScreen({ route, navigation }) {
 
   return (
     <Screen style={styles.screen}>
-      <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.6}>
+      <TouchableOpacity onPress={() => navigation.navigate('Landing')}>
         <Text style={styles.back}>Back</Text>
       </TouchableOpacity>
 
       <View style={styles.content}>
         <Text style={styles.title}>Welcome Back</Text>
+        <Text style={styles.subtitle}>Sign in to continue to your account</Text>
+
         <Input
           placeholder="Email"
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
+          style={styles.input}
         />
+
         <Input
           placeholder="Password"
           secureTextEntry
           value={password}
           onChangeText={setPassword}
+          style={styles.input}
         />
 
         <TouchableOpacity onPress={() => navigation.navigate('Forgot')} style={styles.linkWrapper}>
@@ -72,37 +77,55 @@ export default function LoginScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    paddingTop: 56
-  },
+ 
   back: {
-    color: colors.mutedAlt,
-    fontSize: 16,
-    marginBottom: 32
+    color: '#0F3E48',
+    fontSize: 15,
+    marginTop: 80,
+    marginBottom: 100,
+    margin: 10,
   },
   content: {
-    flex: 1
+    flex: 1,
+    padding: 10,
   },
   title: {
     color: colors.subtleText,
     fontSize: 30,
-    fontWeight: '800',
-    marginBottom: 32
+    fontWeight: '900',
+    fontFamily: 'serif',
+    marginBottom: 3,
+    marginLeft: 10,
+    marginRight: 10,
   },
+  subtitle: {
+    color: colors.subtleText,
+    fontSize: 15,
+     fontFamily: 'serif',
+    marginBottom: 32,
+    opacity: 0.8,
+    marginLeft: 10,
+    marginRight: 10,
+  },
+ 
   linkWrapper: {
-    alignItems: 'flex-end',
-    marginBottom: 18
+    alignItems: 'flex-start',
+    marginStart: 25,
+    marginBottom: 18,
   },
   link: {
-    color: colors.accent,
-    fontWeight: '600'
+    color: colors.subtleText,
+    fontWeight: '800',
+    fontFamily: 'serif',
   },
   footerLink: {
-    marginTop: 24
+    marginTop: 24,
   },
   footer: {
     textAlign: 'center',
     color: colors.subtleText,
-    fontWeight: '600'
-  }
+    fontWeight: '400',
+    fontSize: 15,
+    fontFamily: 'serif',
+  },
 });
