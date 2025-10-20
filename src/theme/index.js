@@ -1,7 +1,7 @@
 ﻿const palette = {
-  background: '#050A0A',
+  background: '#E9E8E8',
   surface: '#0F2E32',
-  surfaceMuted: '#122F33',
+  surfaceMuted: '#1E5560',
   surfaceAlt: '#173A3F',
   primary: '#0E5258',
   primaryDark: '#0A3C42',
@@ -17,7 +17,7 @@
   outline: '#225B62',
   muted: '#5E7C80',
   mutedAlt: '#94A7AA',
-  subtleText: '#C7D4D6',
+  subtleText: '#0F3E48',
   solid: '#FFFFFF',
   overlay: 'rgba(7, 21, 23, 0.92)'
 };

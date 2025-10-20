@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, StatusBar } from 'react-native';
 import { Screen, Card, colors } from '../components/UI';
-import { Ionicons } from '@expo/vector-icons';
-
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { auth } from '../services/firebase';
 import { getCachedUserRole } from '../services/userCache';
+import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 
 const SAMPLE_DESIGNS = [
   { id: '1', title: 'Modern Living Room', image: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=800&q=80' },
@@ -12,220 +12,253 @@ const SAMPLE_DESIGNS = [
   { id: '3', title: 'Minimalist Bedroom', image: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=800&sig=1' },
   { id: '4', title: 'Cozy Studio', image: 'https://images.unsplash.com/photo-1487014679447-9f8336841d58?w=800&sig=2' },
   { id: '5', title: 'Urban Workspace', image: 'https://images.unsplash.com/photo-1493666438817-866a91353ca9?w=800&q=80' },
-  { id: '6', title: 'Boho Retreat', image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80' },
-  { id: '7', title: 'Art Deco Lounge', image: 'https://images.unsplash.com/photo-1493666438817-866a91353ca9?w=800&sig=3' },
-  { id: '8', title: 'Neutral Workspace', image: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=800&q=80' },
-  { id: '9', title: 'Industrial Kitchen', image: 'https://images.unsplash.com/photo-1570129476769-55f4a5add5a6?w=800&q=80' },
-  { id: '10', title: 'Serene Bathroom', image: 'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?w=800&q=80' }
 ];
 
 export default function HomeScreen({ navigation }) {
   const [isDesigner, setIsDesigner] = useState(false);
   const [roleChecked, setRoleChecked] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [photoURL, setPhotoURL] = useState(null);
+  const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
     let isMounted = true;
-    const resolveRole = async () => {
+    const resolveRoleAndUser = async () => {
       try {
-        const uid = auth.currentUser?.uid;
+        const user = auth.currentUser;
+        const uid = user?.uid;
         const cachedRole = uid ? await getCachedUserRole(uid) : null;
+
         if (isMounted) {
           setIsDesigner((cachedRole || 'user') === 'designer');
           setRoleChecked(true);
+          const name = user?.displayName || user?.email?.split('@')[0] || 'User';
+          setUserName(name);
+          setPhotoURL(user?.photoURL || null);
         }
-      } catch (error) {
+      } catch {
         if (isMounted) {
           setIsDesigner(false);
           setRoleChecked(true);
+          setUserName('User');
+          setPhotoURL(null);
         }
       }
     };
-    resolveRole();
-    return () => {
-      isMounted = false;
-    };
+    resolveRoleAndUser();
+    return () => { isMounted = false; };
   }, []);
 
-  const designs = useMemo(() => SAMPLE_DESIGNS, []);
+  useEffect(() => {
+    setNotifications([
+      { id: 1, title: 'New design approved!' },
+      { id: 2, title: 'Your consultation is scheduled.' },
+    ]);
+  }, []);
+
+  const handleNotificationsPress = () => {
+    navigation.navigate('Notifications', { notifications });
+  };
+
+  const handleEditAccount = () => {
+    navigation.navigate('EditAccoun');
+  };
+
+  const designs = useMemo(() => SAMPLE_DESIGNS.slice(0, 2), []);
 
   return (
     <Screen inset={false} style={styles.screen}>
+      <ExpoStatusBar style="light" translucent backgroundColor="transparent" />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        
+        {/* Hero Section */}
         <View style={styles.hero}>
           <View style={styles.heroTop}>
             <View style={styles.identity}>
-              <View style={styles.avatar} />
-              <Ionicons name="ribbon-outline" size={20} color={colors.accent} />
+              {photoURL ? (
+                <Image source={{ uri: photoURL }} style={styles.avatarImage} />
+              ) : (
+                <View style={styles.avatar}>
+                  <Ionicons name="person-circle" size={55} color="#FFFFFF" />
+                </View>
+              )}
+              <TouchableOpacity onPress={handleEditAccount} style={styles.crownWrapper}>
+                <FontAwesome5 name="crown" size={24} color="#FFD700" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
-              <Ionicons name="notifications-outline" size={24} color={colors.primaryText} />
+            <TouchableOpacity onPress={handleNotificationsPress} style={styles.notificationWrapper}>
+              <Ionicons name="notifications-outline" size={42} color={colors.primaryText} />
+              {notifications.length > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{notifications.length}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
-          <Text style={styles.welcome}>Welcome Username!</Text>
+          <Text style={styles.welcome}>Welcome, {userName}!</Text>
         </View>
 
-        <View style={styles.content}>
-          <View style={styles.row}>
-            <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate('Assistant')} style={styles.column}>
-              <Card style={styles.tile}>
-                <Ionicons name="color-palette-outline" size={36} color={colors.primaryText} style={styles.tileIcon} />
-                <Text style={styles.tileText}>Design with AI</Text>
-              </Card>
-            </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate('CustomizeAI')} style={styles.column}>
-              <Card style={styles.tile}>
-                <Ionicons name="settings-outline" size={36} color={colors.primaryText} style={styles.tileIcon} />
-                <Text style={styles.tileText}>Customize with AI</Text>
-              </Card>
-            </TouchableOpacity>
-          </View>
+        {/* Quick Actions Section */}
+      <View style={styles.section}>
+  <View style={styles.quickGrid}>
+    {/* Design with AI */}
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => navigation.navigate('Assistant')}
+      style={styles.quickCard}
+    >
+      <View style={[styles.iconCircle, { backgroundColor: '#316d79ff', borderRadius: 42 }]}>
+        <Ionicons name="color-palette" size={22} color="#fff" />
+      </View>
+      <Text style={styles.quickTextDark}>Design with AI</Text>
+    </TouchableOpacity>
 
-          <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate('Consultant')}>
-            <Card style={[styles.tile, styles.tileFull]}>
-              <Ionicons name="headset-outline" size={36} color={colors.primaryText} style={styles.tileIcon} />
-              <Text style={styles.tileText}>Consultation</Text>
-            </Card>
-          </TouchableOpacity>
+    {/* Customize with AI */}
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => navigation.navigate('CustomizeAI')}
+      style={styles.quickCard}
+    >
+      <View style={[styles.iconCircle, { backgroundColor: '#2A9D8F', borderRadius: 42 }]}>
+        <Ionicons name="construct" size={22} color="#fff" />
+      </View>
+      <Text style={styles.quickTextDark}>Customize with AI</Text>
+    </TouchableOpacity>
 
+    {/* Consultation */}
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => navigation.navigate('Consultant')}
+      style={styles.quickCard}
+    >
+      <View style={[styles.iconCircle, { backgroundColor: '#2f7bb9ff', borderRadius: 42 }]}>
+        <Ionicons name="chatbubbles" size={22} color="#fff" />
+      </View>
+      <Text style={styles.quickTextDark}>Consultation</Text>
+    </TouchableOpacity>
+  </View>
+</View>
+
+        {/* Recent Designs Section */}
+        <View style={styles.recentSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>My Designs</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Projects')} style={styles.viewAll}>
-              <Text style={styles.viewAllText}>View All</Text>
-              <Ionicons name="arrow-forward-circle" size={22} color={colors.accent} />
+              <FontAwesome5 name="arrow-right" size={20} color={colors.primaryDark} />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.designGrid}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={160}
+            decelerationRate="fast"
+            contentContainerStyle={styles.recentScroll}
+          >
             {designs.map((item) => (
               <TouchableOpacity
                 key={item.id}
-                style={styles.designOption}
+                style={styles.recentDesignOption}
                 activeOpacity={0.82}
-                onPress={() => navigation.navigate('DesignDetail', { uploadedUri: item.image, title: item.title })}
+                onPress={() =>
+                  navigation.navigate('DesignDetail', { uploadedUri: item.image, title: item.title })
+                }
               >
-                <Card style={styles.designCard}>
-                  <Image source={{ uri: item.image }} style={styles.designImage} />
+                <Card style={styles.recentDesignCard}>
+                  <View style={styles.designImageWrapper}>
+                    <Image source={{ uri: item.image }} style={styles.designImage} />
+                    <View style={styles.designIconOverlay}>
+                      <Ionicons name="folder" size={18} color="#fff" />
+                    </View>
+                  </View>
                   <Text style={styles.designTitle}>{item.title}</Text>
                 </Card>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
         </View>
+
       </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    backgroundColor: colors.background
-  },
-  scroll: {
-    paddingBottom: 48
-  },
+  scroll: { paddingBottom: 48 },
   hero: {
-    backgroundColor: colors.primary,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    paddingTop: 64,
-    paddingHorizontal: 24,
-    paddingBottom: 28
+    backgroundColor: colors.surfaceMuted,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + 35 : 75,
+    paddingHorizontal: 30,
+    paddingBottom: 50,
   },
-  heroTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  identity: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.surface
-  },
-  welcome: {
-    color: colors.primaryText,
-    fontSize: 22,
-    fontWeight: '700',
-    marginTop: 20
-  },
-  content: {
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-    gap: 20
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 18
-  },
-  column: {
-    flex: 1
-  },
-  tile: {
+  heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  identity: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  avatar: { alignItems: 'center', justifyContent: 'center', marginLeft: -18 },
+  avatarImage: { width: 55, height: 55, borderRadius: 28, marginLeft: 8 },
+  crownWrapper: { marginLeft: -5, marginTop: 2 },
+  notificationWrapper: { position: 'relative' },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#FF3B30',
+    borderRadius: 10,
+    width: 18,
+    height: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 32,
-    backgroundColor: colors.surfaceAlt,
-    borderColor: colors.outline
   },
-  tileFull: {
-    marginTop: 0
-  },
-  tileIcon: {
-    marginBottom: 16
-  },
-  tileText: {
-    color: colors.subtleText,
-    fontWeight: '700',
-    fontSize: 16
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  sectionTitle: {
-    color: colors.subtleText,
-    fontSize: 18,
-    fontWeight: '700'
-  },
-  viewAll: {
+  badgeText: { color: '#fff', fontSize: 10, fontWeight: '700', marginStart: 2 },
+  welcome: { color: colors.primaryText, fontSize: 22, fontWeight: '700', marginTop: 35, marginBottom: 0, fontFamily: 'serif' },
+
+  section: { marginTop: 20, marginBottom: 10 },
+
+  // Quick Actions
+  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginHorizontal: 24 },
+  quickCard: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+    backgroundColor: '#fff',
+    marginBottom: 14,
   },
-  viewAllText: {
-    color: colors.accent,
-    fontWeight: '600'
-  },
-  designGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between'
-  },
-  designOption: {
-    width: '48%',
-    marginBottom: 18
-  },
-  designCard: {
+  iconCircle: { width: 42, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  iconCircleCircle: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' }, // fully circular
+  quickTextDark: { fontWeight: '700', fontSize: 16, color: '#333', marginLeft: 14, fontFamily: 'serif' },
+
+  // Recent Designs
+  recentSection: { marginTop: 0, marginBottom: 20 },
+  recentDesignOption: { width: 300, alignSelf: 'center' },
+  recentDesignCard: {
+    backgroundColor: '#fff',
+    marginTop: 15,
+    marginStart: 10,
+    margin: 10,
+    borderRadius: 2,
+    borderWidth: 0,
+    overflow: 'hidden',
+    shadowColor: '#575656ff',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
     padding: 0,
-    overflow: 'hidden'
   },
-  designImage: {
-    width: '100%',
-    height: 140
-  },
-  designTitle: {
-    color: colors.subtleText,
-    fontWeight: '600',
-    padding: 14
-  }
+  designImageWrapper: { position: 'relative' },
+  designImage: { width: '100%', height: 200 },
+  designIconOverlay: { position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.5)', padding: 4, borderRadius: 6 },
+  designTitle: { color: colors.subtleText, fontWeight: '600', fontSize: 14, textAlign: 'center', paddingVertical: 10, paddingHorizontal: 6 },
+
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 24, marginTop: 20 },
+  sectionTitle: { color: colors.subtleText, fontSize: 18, fontWeight: '700', fontFamily: 'serif' },
+  viewAll: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });
-
-
-
-

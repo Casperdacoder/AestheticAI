@@ -8,12 +8,14 @@ export const colors = theme.palette;
 const baseButton = {
   alignItems: 'center',
   justifyContent: 'center',
-  borderRadius: theme.radius.lg,
+  borderRadius: theme.radius.md,
   paddingVertical: 14,
   paddingHorizontal: 20,
   flexDirection: 'row',
-  gap: 8
+  gap: 8,
+  color: '#FFFFFF', // ✅ updated text color to white
 };
+
 
 const buttonVariants = {
   primary: {
@@ -212,7 +214,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     paddingHorizontal: theme.spacing.xl,
-    paddingTop: theme.spacing.xl
+    paddingTop: theme.spacing.xxl
   },
   buttonText: {
     fontWeight: '700',
@@ -229,14 +231,18 @@ export const styles = StyleSheet.create({
     marginTop: theme.spacing.xs,
     fontSize: 13
   },
-  input: {
-    borderWidth: 1.5,
-    borderColor: colors.outline,
-    borderRadius: theme.radius.lg,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: 14,
-    color: colors.primaryText,
-    backgroundColor: colors.surfaceAlt
+  
+   input: {
+    backgroundColor: '#E9E8E8',
+    borderRadius: 10,
+    borderWidth: 1.2,
+    borderColor: '#0F3E48',
+    fontFamily: 'serif',
+    fontWeight: 400,
+    paddingHorizontal: 10,
+    paddingVertical: 15,
+     marginLeft: 10,
+    marginRight: 10,
   },
   card: {
     backgroundColor: colors.surface,

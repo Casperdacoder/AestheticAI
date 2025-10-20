@@ -50,23 +50,29 @@ export default function ForgotPasswordScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    paddingTop: 56
-  },
   back: {
-    color: colors.mutedAlt,
+    color: colors.subtleText,
+    fontSize: 28,
     fontSize: 16,
-    marginBottom: 24
+    marginBottom: 100,
+    margin: 10,
   },
   title: {
     color: colors.subtleText,
     fontSize: 28,
-    fontWeight: '800',
-    marginBottom: 12
+    fontWeight: '900',
+    marginBottom: 12,
+    fontFamily: 'serif',
+     marginLeft: 10,
+    marginRight: 10,
   },
   subtitle: {
-    color: colors.mutedAlt,
+    color: colors.subtleText,
+    fontSize: 15,
+     fontFamily: 'serif',
     marginBottom: 24,
-    lineHeight: 22
+    lineHeight: 22,
+     marginLeft: 10,
+    marginRight: 10,
   }
 });

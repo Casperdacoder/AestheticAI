@@ -16,9 +16,11 @@ import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 
 import HomeScreen from './src/screens/HomeScreen';
 import ProjectsScreen from './src/screens/ProjectsScreen';
+import BrowseScreen from './src/screens/BrowseScreen';
 import MessagesInboxScreen from './src/screens/MessagesInboxScreen';
 import AccountScreen from './src/screens/AccountScreen';
 import ConsultantScreen from './src/screens/ConsultantScreen';
+import ConsultantChat from './src/screens/ConsultantChat';
 
 import UploadScreen from './src/screens/UploadScreen';
 import AssistantScreen from './src/screens/AssistantScreen';
@@ -32,15 +34,19 @@ import PaymentScreen from './src/screens/PaymentScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import SecurityScreen from './src/screens/SecurityScreen';
 
+
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
 
 const USER_TAB_CONFIG = [
-  { name: 'Home', component: HomeScreen, icon: 'home-outline' },
-  { name: 'Messages', component: MessagesInboxScreen, icon: 'mail-outline' },
-  { name: 'Projects', component: ProjectsScreen, icon: 'folder-open-outline' },
-  { name: 'Account', component: AccountScreen, icon: 'person-circle-outline' }
+  { name: 'Home', component: HomeScreen, icon: 'home' },
+  { name: 'Messages', component: MessagesInboxScreen, icon: 'mail' },
+  { name: 'Browse', component: BrowseScreen, icon: 'people' },
+  { name: 'My Designs', component: ProjectsScreen, icon: 'folder-open' },
+  { name: 'Account', component: AccountScreen, icon: 'person-circle' }
 ];
+
+
 
 const DESIGNER_TAB_CONFIG = [
   { name: 'Studio', component: ConsultantScreen, icon: 'color-palette-outline' },
@@ -210,6 +216,8 @@ export default function App() {
         <Stack.Screen name="Payment" component={PaymentScreen} options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="Security" component={SecurityScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="ConsultantChat" component={ConsultantChat} options={{ animation: 'slide_from_right' }} />
+
       </Stack.Navigator>
     </NavigationContainer>
   );
