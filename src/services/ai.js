@@ -113,6 +113,233 @@ const roomMatchers = [
   { room: "Outdoor Patio", keywords: ["patio", "outdoor", "balcony", "terrace"] }
 ];
 
+const ROOM_PRIORITY_ORDER = [
+  "Living Room",
+  "Primary Bedroom",
+  "Kitchen",
+  "Dining Room",
+  "Home Office",
+  "Bathroom",
+  "Gaming Studio",
+  "Flexible Space"
+];
+
+const ROOM_KNOWLEDGE_BASE = {
+  "Living Room": {
+    palette: ["#F1EDE5", "#2E3A45", "#B08E6E", "#6B9080"],
+    layoutIdeas: [
+      {
+        room: "Living Room",
+        summary: "Float the sofa and accent chairs around a central coffee table to encourage conversation while keeping a clear perimeter path."
+      },
+      {
+        room: "Living Room",
+        summary: "Anchor a media wall with a low console and flank it with closed storage or bookcases to balance open shelving."
+      }
+    ],
+    decorTips: [
+      "Layer a natural fiber rug beneath the seating zone to visually ground the arrangement.",
+      "Mix two to three accent metals across lighting and hardware for depth without overwhelming the palette.",
+      "Introduce oversized art or a statement mirror on the focal wall to amplify scale.",
+      "Style the coffee table with stacked books and a sculptural bowl for lived-in polish."
+    ],
+    furniture: [
+      "Structured three-seat sofa with performance fabric",
+      "Pair of swivel accent chairs",
+      "Oversized coffee table with rounded edges",
+      "Media console with concealed storage"
+    ],
+    lighting: "Blend a ceiling fixture with staggered floor and table lamps to control evening ambience.",
+    windowTreatments: "Frame the window with lined linen drapery layered over solar shades to manage glare."
+  },
+  "Primary Bedroom": {
+    palette: ["#F7F4EF", "#C9ADA7", "#9A8C98", "#4A5568"],
+    layoutIdeas: [
+      {
+        room: "Primary Bedroom",
+        summary: "Center the bed on the longest wall and float matching nightstands to establish symmetry and clear bedside access."
+      },
+      {
+        room: "Primary Bedroom",
+        summary: "Create a reading corner near the window with a lounge chair, floor lamp, and small side table."
+      }
+    ],
+    decorTips: [
+      "Upgrade to layered bedding - crisp sheets, a quilt, and a textured duvet - for boutique comfort.",
+      "Use sconce lighting or swing-arm lamps to free up nightstand surface area.",
+      "Ground the bed with an area rug that extends at least 24 inches beyond the frame.",
+      "Style dressers with a balanced trio of art, greenery, and personal objects."
+    ],
+    furniture: [
+      "Upholstered queen or king bed with tall headboard",
+      "Pair of closed-storage nightstands",
+      "Low-profile dresser or chest of drawers",
+      "Accent chair with ottoman"
+    ],
+    lighting: "Add dimmable bedside lighting and a diffused overhead fixture for layered control.",
+    windowTreatments: "Opt for blackout drapery layered with sheer panels for both softness and light control."
+  },
+  Kitchen: {
+    palette: ["#F4F1E8", "#D4B483", "#5E503F", "#3F612D"],
+    layoutIdeas: [
+      {
+        room: "Kitchen",
+        summary: "Keep tall cabinetry consolidated on one wall and reserve the opposite run for prep space with uninterrupted countertops."
+      },
+      {
+        room: "Kitchen",
+        summary: "Define casual dining or coffee bar seating with slim counter stools and a pair of pendant lights."
+      }
+    ],
+    decorTips: [
+      "Introduce a statement runner to soften hard surfaces and add colour.",
+      "Swap builder-grade hardware for matte or brushed pulls to elevate cabinetry.",
+      "Style open shelves with a balance of cookbooks, ceramics, and greenery.",
+      "Install under-cabinet lighting to brighten work zones and highlight backsplash texture."
+    ],
+    furniture: [
+      "Counter-height stools with wipeable seats",
+      "Slim rolling island or butcher block cart",
+      "Glass or wood canister set for open shelving",
+      "Pot rack or magnetic knife strip to free counter space"
+    ],
+    lighting: "Layer task lighting at the counters with pendants or a flush mount for overall illumination.",
+    windowTreatments: "Use moisture-resistant woven shades or cafe curtains to soften the window without blocking daylight."
+  },
+  "Dining Room": {
+    palette: ["#F5EFE6", "#B08968", "#223843", "#6E7E85"],
+    layoutIdeas: [
+      {
+        room: "Dining Room",
+        summary: "Center a statement dining table beneath a chandelier and allow at least 36 inches of clearance around the perimeter."
+      },
+      {
+        room: "Dining Room",
+        summary: "Add a sideboard along one wall for serving space and concealed storage, styling the surface with layered art."
+      }
+    ],
+    decorTips: [
+      "Incorporate upholstered host chairs at the table ends for comfort.",
+      "Ground the table with a durable rug sized to keep chairs fully on the pile when pulled out.",
+      "Use a trio of candlesticks or a low arrangement as a flexible centerpiece.",
+      "Introduce a large mirror or artwork to amplify depth and distribute light."
+    ],
+    furniture: [
+      "Extendable dining table in warm wood",
+      "Mix of upholstered and wood dining chairs",
+      "Credenza or buffet with integrated storage",
+      "Bar cabinet or shelving for glassware"
+    ],
+    lighting: "Hang a dimmable chandelier or linear pendant 30-34 inches above the tabletop for even coverage.",
+    windowTreatments: "Panel drapery on rings adds softness and helps absorb sound in dining zones."
+  },
+  "Home Office": {
+    palette: ["#F2F0EB", "#91A6A6", "#4A6670", "#1B1B1E"],
+    layoutIdeas: [
+      {
+        room: "Home Office",
+        summary: "Place the desk perpendicular to the window to avoid monitor glare while enjoying natural light."
+      },
+      {
+        room: "Home Office",
+        summary: "Establish a background shelving wall for storage, display, and video-call polish."
+      }
+    ],
+    decorTips: [
+      "Add a pinboard or magnetic rail system above the desk for active projects.",
+      "Incorporate a rug to dampen sound and define the workspace within open plans.",
+      "Use cord management trays or grommets to keep cables streamlined.",
+      "Bring in biophilic touches - plants or water elements - to reduce visual fatigue."
+    ],
+    furniture: [
+      "Height-adjustable desk or spacious workstation",
+      "Ergonomic task chair with lumbar support",
+      "Modular shelving or filing credenza",
+      "Task lamp with adjustable arm"
+    ],
+    lighting: "Pair task lighting at the desk with diffused ambient lighting to prevent harsh contrasts.",
+    windowTreatments: "Install adjustable shades to cut midday glare while maintaining view lines."
+  },
+  Bathroom: {
+    palette: ["#EEF2F5", "#BCCCDC", "#8AA6C1", "#2E4057"],
+    layoutIdeas: [
+      {
+        room: "Bathroom",
+        summary: "Use wall-mounted storage or recessed niches to keep daily items organized without crowding the vanity."
+      },
+      {
+        room: "Bathroom",
+        summary: "Add a small stool or plant stand near the tub or shower to introduce warmth and function."
+      }
+    ],
+    decorTips: [
+      "Upgrade hardware and fixtures to a cohesive metal finish for an instant refresh.",
+      "Layer plush towels and a textured bathmat for spa-level comfort.",
+      "Introduce moisture-loving plants to soften hard surfaces.",
+      "Swap dated mirror frames for clean-lined options or install backlit mirrors."
+    ],
+    furniture: [
+      "Freestanding storage ladder or shelving tower",
+      "Vanity tray assortment for countertop essentials",
+      "Framed mirror or medicine cabinet",
+      "Water-resistant accent stool"
+    ],
+    lighting: "Combine sconces at eye level with overhead lighting for flattering illumination.",
+    windowTreatments: "Use privacy glass film or vinyl shades that withstand humidity while diffusing light."
+  },
+  "Gaming Studio": {
+    palette: ["#11121A", "#2F2D4A", "#5F5AA2", "#24E8FF"],
+    layoutIdeas: [
+      {
+        room: "Gaming Studio",
+        summary: "Float the desk to allow clean cable routing behind the setup and position monitors at eye height."
+      },
+      {
+        room: "Gaming Studio",
+        summary: "Create an auxiliary lounge zone with a small sofa or beanbag seating for breaks and spectators."
+      }
+    ],
+    decorTips: [
+      "Layer addressable LED strips along shelving and behind monitors for ambient lighting.",
+      "Add acoustic panels or foam tiles to reduce echo during streaming.",
+      "Display collectibles on floating shelves with backlighting for dimension.",
+      "Use a matte wall finish to minimize glare on screens."
+    ],
+    furniture: [
+      "Sit/stand gaming desk with cable trough",
+      "Ergonomic gaming chair with lumbar support",
+      "Dual monitor arms with integrated cable clips",
+      "Media cabinet for console storage"
+    ],
+    lighting: "Combine RGB accent lighting with neutral task lighting to reduce eye strain.",
+    windowTreatments: "Install blackout roller shades to control natural light during daytime sessions."
+  }
+};
+
+const ROOM_SYNONYM_MAP = {
+  "living room": "Living Room",
+  livingroom: "Living Room",
+  "family room": "Living Room",
+  lounge: "Living Room",
+  "primary bedroom": "Primary Bedroom",
+  bedroom: "Primary Bedroom",
+  "master bedroom": "Primary Bedroom",
+  "guest bedroom": "Primary Bedroom",
+  kitchen: "Kitchen",
+  "dining room": "Dining Room",
+  dining: "Dining Room",
+  "home office": "Home Office",
+  office: "Home Office",
+  study: "Home Office",
+  workspace: "Home Office",
+  bathroom: "Bathroom",
+  bath: "Bathroom",
+  ensuite: "Bathroom",
+  "gaming studio": "Gaming Studio",
+  "gaming room": "Gaming Studio",
+  gaming: "Gaming Studio"
+};
+
 
 const COLOR_KEYWORDS = [
   { name: "navy", hex: "#1F3A60", keywords: ["navy", "deep blue"] },
@@ -131,6 +358,249 @@ const COLOR_KEYWORDS = [
   { name: "pewter", hex: "#7E848C", keywords: ["pewter", "steel", "gunmetal"] },
   { name: "copper", hex: "#B8692E", keywords: ["copper", "burnt orange"] }
 ];
+
+function normalizeRoomLabel(value) {
+  if (!value) {
+    return null;
+  }
+  const raw = value.toString().toLowerCase().trim();
+  if (!raw) {
+    return null;
+  }
+  const collapsed = raw.replace(/\s+/g, " ");
+  const slug = collapsed.replace(/\s+/g, "");
+  const mapped = ROOM_SYNONYM_MAP[collapsed] || ROOM_SYNONYM_MAP[slug];
+  if (mapped) {
+    return mapped;
+  }
+  return toTitleCase(collapsed);
+}
+
+function isRemoteImageUri(uri) {
+  return typeof uri === "string" && /^https?:\/\//i.test(uri.trim());
+}
+
+function determinePrimaryRoom(roomAnalysis, scene) {
+  const analysisRoom = normalizeRoomLabel(roomAnalysis?.roomType);
+  if (analysisRoom) {
+    return analysisRoom;
+  }
+
+  const sceneRooms = Array.isArray(scene?.rooms) ? scene.rooms : [];
+  const normalizedRooms = sceneRooms
+    .map((room) => normalizeRoomLabel(room?.name || room))
+    .filter(Boolean);
+
+  for (const candidate of ROOM_PRIORITY_ORDER) {
+    if (normalizedRooms.includes(candidate)) {
+      return candidate;
+    }
+  }
+
+  return normalizedRooms[0] || null;
+}
+
+function mergeSceneWithRoomAnalysis(scene, roomAnalysis) {
+  if (!roomAnalysis) {
+    return scene;
+  }
+
+  const merged = {
+    ...scene,
+    rooms: Array.isArray(scene?.rooms) ? [...scene.rooms] : [],
+    observations: [...(scene?.observations ?? [])],
+    furniture: [...(scene?.furniture ?? [])],
+    lighting: [...(scene?.lighting ?? [])],
+    colors: Array.isArray(scene?.colors) ? [...scene.colors] : []
+  };
+
+  const normalizedRoom = normalizeRoomLabel(roomAnalysis.roomType);
+  if (normalizedRoom) {
+    const existingIndex = merged.rooms.findIndex(
+      (room) => normalizeRoomLabel(room?.name) === normalizedRoom
+    );
+    if (existingIndex >= 0) {
+      const existing = merged.rooms.splice(existingIndex, 1)[0];
+      merged.rooms.unshift({ ...existing, source: existing?.source || "azure" });
+    } else {
+      merged.rooms.unshift({ name: normalizedRoom, source: "azure" });
+    }
+    merged.observations = dedupe([
+      `Azure Vision identified this as a ${normalizedRoom.toLowerCase()}.`,
+      ...merged.observations
+    ]);
+  }
+
+  if (roomAnalysis.hasWindow) {
+    merged.observations = dedupe([
+      "Detected a window; layer treatments to manage natural light and privacy.",
+      ...merged.observations
+    ]);
+    merged.lighting = dedupe(["Natural light", ...merged.lighting]);
+  }
+
+  merged.roomAnalysis = {
+    ...roomAnalysis,
+    roomType: normalizedRoom || roomAnalysis.roomType || null
+  };
+
+  return merged;
+}
+
+function mergeCuratedIdeas(curated, existing) {
+  const curatedIdeas = Array.isArray(curated)
+    ? curated
+        .map((idea) => ({
+          room: toTitleCase(idea?.room || idea?.name || "Flexible Space"),
+          summary: (idea?.summary || idea?.description || "").trim()
+        }))
+        .filter((idea) => idea.summary.length)
+    : [];
+
+  const combined = [...curatedIdeas, ...(Array.isArray(existing) ? existing : [])];
+  const seen = new Set();
+  const merged = [];
+
+  combined.forEach((idea) => {
+    if (!idea) {
+      return;
+    }
+    const room = toTitleCase(idea.room || "Flexible Space");
+    const summary = (idea.summary || "").trim();
+    if (!summary) {
+      return;
+    }
+    const key = `${room}|${summary}`;
+    if (!seen.has(key)) {
+      merged.push({ room, summary });
+      seen.add(key);
+    }
+  });
+
+  const desiredLength = Math.max(
+    Array.isArray(existing) ? existing.length : 0,
+    curatedIdeas.length || 0,
+    3
+  );
+
+  return merged.slice(0, desiredLength);
+}
+
+function applyRoomKnowledge(result, { roomAnalysis, scene }) {
+  const primaryRoom = determinePrimaryRoom(roomAnalysis, scene);
+  const baseAnalysis = result.analysis || {};
+  const next = {
+    ...result,
+    palette: Array.isArray(result.palette) ? [...result.palette] : [],
+    layoutIdeas: Array.isArray(result.layoutIdeas) ? [...result.layoutIdeas] : [],
+    decorTips: Array.isArray(result.decorTips) ? [...result.decorTips] : [],
+    furnitureMatches: Array.isArray(result.furnitureMatches)
+      ? [...result.furnitureMatches]
+      : [],
+    photoInsights: { ...(result.photoInsights || {}) },
+    analysis: {
+      rooms: Array.isArray(baseAnalysis.rooms) ? [...baseAnalysis.rooms] : [],
+      furniture: Array.isArray(baseAnalysis.furniture) ? [...baseAnalysis.furniture] : [],
+      lighting: Array.isArray(baseAnalysis.lighting) ? [...baseAnalysis.lighting] : [],
+      colors: Array.isArray(baseAnalysis.colors) ? [...baseAnalysis.colors] : [],
+      roomAnalysis: baseAnalysis.roomAnalysis || result.photoInsights?.roomAnalysis || null
+    }
+  };
+
+  if (roomAnalysis) {
+    next.photoInsights.roomAnalysis = roomAnalysis;
+    next.analysis.roomAnalysis = roomAnalysis;
+  }
+
+  if (primaryRoom) {
+    next.analysis.rooms = dedupe([primaryRoom, ...next.analysis.rooms]);
+    next.photoInsights.detectedRooms = dedupe([
+      primaryRoom,
+      ...(next.photoInsights.detectedRooms || [])
+    ]);
+
+    const knowledge = ROOM_KNOWLEDGE_BASE[primaryRoom];
+    if (knowledge) {
+      next.palette = dedupe([...(knowledge.palette || []), ...next.palette]).slice(0, 6);
+      next.layoutIdeas = mergeCuratedIdeas(knowledge.layoutIdeas, next.layoutIdeas);
+      next.decorTips = dedupe([...(knowledge.decorTips || []), ...next.decorTips]).slice(0, 6);
+      next.furnitureMatches = dedupe([
+        ...(knowledge.furniture || []),
+        ...next.furnitureMatches
+      ]).slice(0, 6);
+
+      if (knowledge.lighting) {
+        next.photoInsights.recommendedLighting =
+          next.photoInsights.recommendedLighting || knowledge.lighting;
+        next.analysis.lighting = dedupe([knowledge.lighting, ...next.analysis.lighting]);
+      }
+
+      let observations = dedupe([
+        ...(knowledge.observations || []),
+        ...(next.photoInsights.observations || [])
+      ]);
+
+      if (roomAnalysis?.hasWindow && knowledge.windowTreatments) {
+        observations = dedupe([knowledge.windowTreatments, ...observations]);
+      }
+      if (roomAnalysis?.hasWindow) {
+        observations = dedupe([
+          "Detected window - plan includes layered treatments and seating recommendations to leverage daylight.",
+          ...observations
+        ]);
+        if (roomAnalysis.windowConfidence) {
+          observations = dedupe([
+            `Window detection confidence ${roomAnalysis.windowConfidence.toFixed(
+              2
+            )}; incorporate glare control and privacy options.`,
+            ...observations
+          ]);
+        }
+      }
+      if (roomAnalysis?.roomConfidence) {
+        observations = dedupe([
+          `Computer vision confidence ${roomAnalysis.roomConfidence.toFixed(
+            2
+          )} for ${primaryRoom.toLowerCase()}.`,
+          ...observations
+        ]);
+      }
+
+      next.photoInsights.observations = observations;
+    } else if (roomAnalysis?.roomType) {
+      next.photoInsights.observations = dedupe([
+        `Room analysis suggests this is a ${primaryRoom.toLowerCase()}.`,
+        ...(next.photoInsights.observations || [])
+      ]);
+    }
+    if (roomAnalysis) {
+      next.analysis.roomAnalysis = roomAnalysis;
+    }
+  } else if (roomAnalysis?.roomType) {
+    const normalized = normalizeRoomLabel(roomAnalysis.roomType);
+    if (normalized) {
+      next.photoInsights.detectedRooms = dedupe([
+        normalized,
+        ...(next.photoInsights.detectedRooms || [])
+      ]);
+      next.analysis.rooms = dedupe([normalized, ...next.analysis.rooms]);
+    }
+    next.photoInsights.observations = dedupe([
+      `Room analysis suggests this is a ${(
+        normalized || roomAnalysis.roomType
+      ).toLowerCase()}.`,
+      ...(next.photoInsights.observations || [])
+    ]);
+    next.analysis.roomAnalysis = roomAnalysis;
+  }
+
+  if (roomAnalysis?.hasWindow) {
+    next.analysis.lighting = dedupe(["Natural light", ...next.analysis.lighting]);
+    next.analysis.roomAnalysis = roomAnalysis;
+  }
+
+  return next;
+}
 
 const INTENT_FEATURES = [
   {
@@ -455,6 +925,15 @@ const ROOM_TEMPLATES = {
 const extra = Constants.expoConfig?.extra ?? Constants.manifest?.extra ?? {};
 const huggingface = extra?.huggingface ?? {};
 const googleVision = extra?.googleVision ?? {};
+
+const apiBaseUrlRaw =
+  extra?.apiBaseUrl ||
+  process.env?.EXPO_PUBLIC_API_BASE_URL ||
+  process.env?.EXPO_PUBLIC_API_URL ||
+  "";
+const analyzeRoomEndpoint = apiBaseUrlRaw
+  ? `${apiBaseUrlRaw.replace(/\/$/, "")}/api/analyze-room`
+  : null;
 
 const hfToken = huggingface.token && huggingface.token !== "undefined" ? huggingface.token : null;
 const hfImageModel =
@@ -831,6 +1310,59 @@ function interpretVisionResponse(response, { mimeType }) {
       .join(", "),
     mimeType: mimeType || null
   };
+}
+
+async function analyzeRoomWithService({ imageUri, imageBase64, mimeType }) {
+  if (!analyzeRoomEndpoint) {
+    return null;
+  }
+
+  const payload = {};
+  const hasRemoteUrl = isRemoteImageUri(imageUri);
+  if (hasRemoteUrl) {
+    payload.url = imageUri;
+  }
+
+  if (imageBase64) {
+    payload.base64 = imageBase64;
+    if (mimeType) {
+      payload.mimeType = mimeType;
+    }
+  }
+
+  if (!payload.url && !payload.base64) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(analyzeRoomEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(detail || `Room analysis failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (data?.error) {
+      throw new Error(data.error);
+    }
+
+    return {
+      roomType: normalizeRoomLabel(data?.roomType) || data?.roomType || null,
+      rawRoomType: data?.roomType || null,
+      roomConfidence: Number(data?.roomConfidence) || 0,
+      hasWindow: Boolean(data?.hasWindow),
+      windowConfidence: Number(data?.windowConfidence) || 0,
+      windowBoxes: Array.isArray(data?.windowBoxes) ? data.windowBoxes : []
+    };
+  } catch (error) {
+    console.warn("[ai] External room analysis failed:", error?.message || error);
+    return null;
+  }
 }
 
 async function annotateWithGoogleVision({ base64, mimeType }) {
@@ -1218,7 +1750,8 @@ function buildFallbackSuggestion({ prompt, imageUri, scene, caption, vision, see
     detectedRooms: rooms,
     detectedFurniture: scene?.furniture ?? [],
     detectedLighting: scene?.lighting ?? [],
-    detectedColors
+    detectedColors,
+    roomAnalysis: scene?.roomAnalysis || null
   };
 
   const suggestion = {
@@ -1235,7 +1768,8 @@ function buildFallbackSuggestion({ prompt, imageUri, scene, caption, vision, see
       rooms,
       furniture: scene?.furniture ?? [],
       lighting: scene?.lighting ?? [],
-      colors: detectedColors
+      colors: detectedColors,
+      roomAnalysis: scene?.roomAnalysis || null
     }
   };
 
@@ -1451,7 +1985,7 @@ async function requestDesignPlan({ caption, prompt, styleHint, analysis, request
   }
   return parsed;
 }
-function finalizePlan(plan, { fallback, prompt, imageUri, caption, scene, templateInfo }) {
+function finalizePlan(plan, { fallback, prompt, imageUri, caption, scene, templateInfo, roomAnalysis }) {
   const sceneStyle = scene?.style;
   const styleName =
     sceneStyle?.name || plan.styleName || plan.style?.name || fallback.style.name;
@@ -1512,6 +2046,18 @@ function finalizePlan(plan, { fallback, prompt, imageUri, caption, scene, templa
     ...(scene?.lighting ?? []),
     ...(fallbackInsights.detectedLighting ?? [])
   ]);
+  const combinedRoomAnalysis =
+    roomAnalysis ||
+    scene?.roomAnalysis ||
+    fallbackInsights.roomAnalysis ||
+    fallback.analysis?.roomAnalysis ||
+    null;
+  if (
+    combinedRoomAnalysis?.roomType &&
+    !detectedRooms.some((room) => normalizeRoomLabel(room) === normalizeRoomLabel(combinedRoomAnalysis.roomType))
+  ) {
+    detectedRooms.unshift(normalizeRoomLabel(combinedRoomAnalysis.roomType));
+  }
   const detectedColors = dedupe(
     (scene?.colors?.length ? scene.colors : fallbackInsights.detectedColors || []).map((entry) =>
       typeof entry === 'string' ? entry : entry?.hex
@@ -1522,7 +2068,7 @@ function finalizePlan(plan, { fallback, prompt, imageUri, caption, scene, templa
     plan.photoInsights?.recommendedLighting ||
     (detectedLighting.length ? detectedLighting[0] : null);
 
-  return {
+  const result = {
     generatedAt: new Date().toISOString(),
     prompt,
     sourceImage: imageUri,
@@ -1538,20 +2084,29 @@ function finalizePlan(plan, { fallback, prompt, imageUri, caption, scene, templa
       detectedFurniture,
       detectedLighting,
       detectedColors,
-      recommendedLighting
+      recommendedLighting,
+      roomAnalysis: combinedRoomAnalysis || null
     },
     analysis: {
       rooms: detectedRooms,
       furniture: detectedFurniture,
       lighting: detectedLighting,
-      colors: detectedColors
+      colors: detectedColors,
+      roomAnalysis: combinedRoomAnalysis || null
     }
   };
+
+  return applyRoomKnowledge(result, {
+    roomAnalysis: combinedRoomAnalysis,
+    scene
+  });
 }
 
 export async function generateLayoutSuggestions({ imageUri, prompt, imageBase64, metadata, requestId }) {
   const normalizedPrompt = (prompt || '').trim();
   const runId = typeof requestId === 'number' ? requestId : Date.now();
+  const huggingfaceAvailable = Boolean(hfToken);
+
   let scene = analyzeScene({ caption: null, prompt: normalizedPrompt, vision: null });
   let fallback = buildFallbackSuggestion({
     prompt: normalizedPrompt,
@@ -1562,22 +2117,8 @@ export async function generateLayoutSuggestions({ imageUri, prompt, imageBase64,
     seed: runId
   });
 
-  if (!hfToken) {
-    const templateInfo = fallback.templateInfo
-      ? { ...fallback.templateInfo, reason: 'model-unavailable' }
-      : undefined;
-
-    return finalizePlan(fallback, {
-      fallback,
-      prompt: normalizedPrompt,
-      imageUri,
-      caption: null,
-      scene,
-      templateInfo
-    });
-  }
-
-  let caption;
+  let roomAnalysis = null;
+  let caption = null;
   let visionDetails = null;
 
   try {
@@ -1588,22 +2129,70 @@ export async function generateLayoutSuggestions({ imageUri, prompt, imageBase64,
       throw missing;
     }
 
-    visionDetails = await annotateWithGoogleVision({ base64, mimeType: metadata?.mimeType });
+    const [analysisResult, visionResult] = await Promise.all([
+      analyzeRoomWithService({
+        imageUri,
+        imageBase64: base64,
+        mimeType: metadata?.mimeType
+      }),
+      annotateWithGoogleVision({ base64, mimeType: metadata?.mimeType })
+    ]);
 
-    caption = await captionImage({
-      base64,
-      mimeType: metadata?.mimeType
-    });
+    roomAnalysis = analysisResult || null;
+    visionDetails = visionResult;
 
-    scene = analyzeScene({ caption, prompt: normalizedPrompt, vision: visionDetails });
+    scene = analyzeScene({ caption: null, prompt: normalizedPrompt, vision: visionDetails });
+    if (roomAnalysis) {
+      scene = mergeSceneWithRoomAnalysis(scene, roomAnalysis);
+    }
+
     fallback = buildFallbackSuggestion({
       prompt: normalizedPrompt,
       imageUri,
       scene,
-      caption,
+      caption: null,
       vision: visionDetails,
       seed: runId
     });
+
+    if (huggingfaceAvailable) {
+      caption = await captionImage({
+        base64,
+        mimeType: metadata?.mimeType
+      });
+
+      scene = analyzeScene({ caption, prompt: normalizedPrompt, vision: visionDetails });
+      if (roomAnalysis) {
+        scene = mergeSceneWithRoomAnalysis(scene, roomAnalysis);
+      }
+
+      fallback = buildFallbackSuggestion({
+        prompt: normalizedPrompt,
+        imageUri,
+        scene,
+        caption,
+        vision: visionDetails,
+        seed: runId
+      });
+    } else {
+      caption = null;
+    }
+
+    if (!huggingfaceAvailable) {
+      const templateInfo = fallback.templateInfo
+        ? { ...fallback.templateInfo, reason: 'model-unavailable' }
+        : undefined;
+
+      return finalizePlan(fallback, {
+        fallback,
+        prompt: normalizedPrompt,
+        imageUri,
+        caption,
+        scene,
+        roomAnalysis,
+        templateInfo
+      });
+    }
 
     const plan = await requestDesignPlan({
       caption,
@@ -1636,6 +2225,7 @@ export async function generateLayoutSuggestions({ imageUri, prompt, imageBase64,
         imageUri,
         caption,
         scene,
+        roomAnalysis,
         templateInfo: {
           ...templateInfo,
           reason: 'validation-fallback'
@@ -1648,7 +2238,8 @@ export async function generateLayoutSuggestions({ imageUri, prompt, imageBase64,
       prompt: normalizedPrompt,
       imageUri,
       caption,
-      scene
+      scene,
+      roomAnalysis
     });
   } catch (error) {
     if (error?.code === 'NO_IMAGE_DATA') {
@@ -1670,6 +2261,7 @@ export async function generateLayoutSuggestions({ imageUri, prompt, imageBase64,
       imageUri,
       caption,
       scene,
+      roomAnalysis,
       templateInfo: {
         ...templateInfo,
         reason: 'error-fallback'
