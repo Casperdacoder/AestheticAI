@@ -31,6 +31,7 @@ import ManageSubscriptionScreen from './src/screens/ManageSubscriptionScreen';
 import PaymentScreen from './src/screens/PaymentScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import SecurityScreen from './src/screens/SecurityScreen';
+import ChatScreen from './src/screens/ChatScreen';
 
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -210,6 +211,7 @@ export default function App() {
         <Stack.Screen name="Payment" component={PaymentScreen} options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="Security" component={SecurityScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="Chat" component={ChatScreen} options={{ animation: 'slide_from_right' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

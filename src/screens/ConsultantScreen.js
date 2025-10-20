@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { auth } from '../services/firebase';
 import { getCachedUserRole } from '../services/userCache';
 import { createConsultationRequest, listenToConsultations, updateConsultationStatus } from '../services/consultations';
+import { ensureConsultationChat } from '../services/chat';
 
 const BOOKING_TABS = ['All', 'Pending', 'Approved', 'Rejected', 'Completed'];
 
@@ -160,9 +161,9 @@ export default function ConsultantScreen({ navigation }) {
   const openModal = (action, booking) => setModalState({ visible: true, action, booking, loading: false });
   const closeModal = () => setModalState({ visible: false, action: null, booking: null, loading: false });
 
-  const updateBookingStatus = (id, status) => {
+  const updateBookingStatus = (id, status, extra = {}) => {
     setBookings((current) =>
-      current.map((booking) => (booking.id === id ? { ...booking, status } : booking))
+      current.map((booking) => (booking.id === id ? { ...booking, status, ...extra } : booking))
     );
   };
 
@@ -220,16 +221,44 @@ export default function ConsultantScreen({ navigation }) {
       return;
     }
 
+    const consultantId = auth.currentUser?.uid || null;
+    if (!consultantId) {
+      setToast({ message: 'You need to be signed in to manage consultations.', variant: 'danger' });
+      setTimeout(() => setToast(null), 2400);
+      closeModal();
+      return;
+    }
+
+    const clientName = booking.clientName || booking.client || 'Client';
+
     setModalState((prev) => ({ ...prev, loading: true }));
 
     try {
-      await updateConsultationStatus(booking.id, nextStatus, {
-        statusUpdatedBy: auth.currentUser?.uid || null
-      });
+      const metadata = { statusUpdatedBy: consultantId };
+      let chatId = booking.chatId || null;
 
-      if (usingFallbackData) {
-        updateBookingStatus(booking.id, nextStatus);
+      if (nextStatus === 'Approved') {
+        if (!booking.userId) {
+          throw new Error('Consultation request is missing the requester account.');
+        }
+
+        const chat = await ensureConsultationChat({
+          consultationId: booking.id,
+          userId: booking.userId,
+          consultantId,
+          clientName,
+          consultantName: auth.currentUser?.displayName || 'Consultant'
+        });
+
+        chatId = chat.id;
+        metadata.consultantId = consultantId;
+        metadata.chatId = chatId;
       }
+
+      await updateConsultationStatus(booking.id, nextStatus, metadata);
+
+      const statePatch = chatId ? { chatId } : {};
+      updateBookingStatus(booking.id, nextStatus, statePatch);
 
       const toastConfig =
         nextStatus === 'Approved'
@@ -238,10 +267,22 @@ export default function ConsultantScreen({ navigation }) {
       setToast(toastConfig);
       closeModal();
       setTimeout(() => setToast(null), 2200);
+
+      if (nextStatus === 'Approved' && chatId) {
+        navigation.navigate('Chat', {
+          chatId,
+          consultationId: booking.id,
+          participantName: clientName
+        });
+      }
     } catch (error) {
       console.warn('Failed to update consultation status', error);
       setModalState((prev) => ({ ...prev, loading: false }));
-      setToast({ message: 'Failed to update booking. Please try again.', variant: 'danger' });
+      const message =
+        nextStatus === 'Approved'
+          ? 'Failed to accept booking. Please try again.'
+          : 'Failed to update booking. Please try again.';
+      setToast({ message, variant: 'danger' });
       setTimeout(() => setToast(null), 2400);
     }
   };
@@ -317,9 +358,18 @@ export default function ConsultantScreen({ navigation }) {
   );
 
   const handleOpenChat = (booking) => {
-    const name = booking?.clientName || booking?.client || 'client';
-    setToast({ message: `Opening chat with ${name}...`, variant: 'info' });
-    setTimeout(() => setToast(null), 1600);
+    if (!booking?.chatId) {
+      setToast({ message: 'Chat is not ready yet. Please try again in a moment.', variant: 'info' });
+      setTimeout(() => setToast(null), 1800);
+      return;
+    }
+
+    const name = booking.clientName || booking.client || 'Client';
+    navigation.navigate('Chat', {
+      chatId: booking.chatId,
+      consultationId: booking.id,
+      participantName: name
+    });
   };
 
   if (!isDesigner) {
@@ -430,6 +480,10 @@ export default function ConsultantScreen({ navigation }) {
                 : 'Awaiting schedule';
               const contactEmail = booking.clientEmail || booking.email || null;
               const requestDetails = booking.details || booking.notes || '';
+              const showPendingActions = booking.status === 'Pending';
+              const showChatAction = booking.status === 'Approved' || booking.status === 'Completed';
+              const chatReady = Boolean(booking.chatId);
+              const chatButtonTitle = chatReady ? 'Open chat' : 'Preparing chat...';
 
               return (
                 <Card key={booking.id} style={styles.bookingCard}>
@@ -446,6 +500,35 @@ export default function ConsultantScreen({ navigation }) {
                       <Text style={styles.badgeText}>{booking.status}</Text>
                     </View>
                   </View>
+                  {showPendingActions || showChatAction ? (
+                    <View style={styles.bookingActions}>
+                      {showPendingActions ? (
+                        <>
+                          <Button
+                            title="Reject"
+                            variant="outline"
+                            style={[styles.actionButton, styles.rejectButton]}
+                            textStyle={styles.rejectText}
+                            onPress={() => openModal('reject', booking)}
+                          />
+                          <Button
+                            title="Accept"
+                            style={styles.actionButton}
+                            onPress={() => openModal('accept', booking)}
+                          />
+                        </>
+                      ) : null}
+                      {showChatAction ? (
+                        <Button
+                          title={chatButtonTitle}
+                          style={styles.actionButton}
+                          onPress={() => handleOpenChat(booking)}
+                          disabled={!chatReady}
+                          variant={chatReady ? 'primary' : 'outline'}
+                        />
+                      ) : null}
+                    </View>
+                  ) : null}
                 </Card>
               );
             })
@@ -680,6 +763,16 @@ const styles = StyleSheet.create({
   bookingRow: {
     flexDirection: 'row',
     gap: 16
+  },
+  bookingActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 16
+  },
+  actionButton: {
+    flex: 1,
+    minWidth: 140
   },
   bookingDetails: {
     flex: 1,

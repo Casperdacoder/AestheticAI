@@ -72,6 +72,11 @@ export default function CustomizeAiScreen({ navigation, route }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [result, setResult] = useState(null);
   const [stylePreset, setStylePreset] = useState(STYLE_PRESETS[0]);
+  const activeRoomAnalysis = result?.photoInsights?.roomAnalysis || null;
+  const hasPhotoInsights =
+    !!activeRoomAnalysis || (result?.photoInsights?.observations?.length ?? 0) > 0;
+  const formatConfidence = (value) =>
+    typeof value === 'number' && Number.isFinite(value) ? value.toFixed(2) : null;
 
   const previewSource = useMemo(() => ({ uri: imageUri || DEFAULT_IMAGE }), [imageUri]);
   const builderPrompt = useMemo(() => {
@@ -369,12 +374,34 @@ export default function CustomizeAiScreen({ navigation, route }) {
                 ))}
               </View>
             </View>
-            {result.photoInsights?.observations?.length ? (
+            {hasPhotoInsights ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Photo Insights</Text>
-                {result.photoInsights.observations.map((note) => (
-                  <Text key={note} style={styles.tipItem}>{`${BULLET} ${note}`}</Text>
-                ))}
+                {activeRoomAnalysis ? (
+                  <>
+                    <Text style={styles.tipItem}>
+                      {`${BULLET} Detected room: ${activeRoomAnalysis.roomType || 'Undetermined'}${
+                        formatConfidence(activeRoomAnalysis.roomConfidence)
+                          ? ` (confidence ${formatConfidence(activeRoomAnalysis.roomConfidence)})`
+                          : ''
+                      }`}
+                    </Text>
+                    {activeRoomAnalysis.hasWindow ? (
+                      <Text style={styles.tipItem}>
+                        {`${BULLET} Window detected${
+                          formatConfidence(activeRoomAnalysis.windowConfidence)
+                            ? ` (confidence ${formatConfidence(activeRoomAnalysis.windowConfidence)})`
+                            : ''
+                        }.`}
+                      </Text>
+                    ) : null}
+                  </>
+                ) : null}
+                {Array.isArray(result.photoInsights?.observations)
+                  ? result.photoInsights.observations.map((note) => (
+                      <Text key={note} style={styles.tipItem}>{`${BULLET} ${note}`}</Text>
+                    ))
+                  : null}
               </View>
             ) : null}
             <View style={styles.section}>
