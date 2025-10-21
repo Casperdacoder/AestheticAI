@@ -48,7 +48,11 @@ const STATUS_BADGE_STYLE = {
   Completed: { color: '#353535', backgroundColor: 'rgba(53,53,53,0.12)' }
 };
 
+<<<<<<< HEAD
 const FALLBACK_TOAST_DURATION = 2600;
+=======
+const FALLBACK_MESSAGE_DURATION = 2600;
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
 
 function formatSubmittedAt(timestamp) {
   if (!timestamp) {
@@ -171,7 +175,11 @@ export default function ConsultantScreen({ navigation }) {
     let unsubscribe = () => {};
     setLoading(true);
 
+<<<<<<< HEAD
     const injectFallback = () => {
+=======
+    const handleFallback = () => {
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
       if (fallbackInjected) {
         return;
       }
@@ -179,7 +187,11 @@ export default function ConsultantScreen({ navigation }) {
       setUsingFallbackData(true);
       setBookings(INITIAL_BOOKINGS);
       setLoading(false);
+<<<<<<< HEAD
       showToast('Showing sample consultations while offline.', 'warning', FALLBACK_TOAST_DURATION);
+=======
+      showToast('Showing sample consultations while offline.', 'warning', FALLBACK_MESSAGE_DURATION);
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
     };
 
     try {
@@ -191,12 +203,20 @@ export default function ConsultantScreen({ navigation }) {
         },
         (error) => {
           console.warn('Failed to load consultations', error);
+<<<<<<< HEAD
           injectFallback();
+=======
+          handleFallback();
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
         }
       );
     } catch (error) {
       console.warn('Failed to subscribe to consultations', error);
+<<<<<<< HEAD
       injectFallback();
+=======
+      handleFallback();
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
     }
 
     return () => {
@@ -519,7 +539,11 @@ export default function ConsultantScreen({ navigation }) {
                 <TextInput
                   value={consultRequest.details}
                   onChangeText={(value) => handleRequestChange('details', value)}
+<<<<<<< HEAD
                   placeholder='Share goals, constraints, vibe...'
+=======
+                  placeholder="Share goals, constraints, vibe..."
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
                   placeholderTextColor={colors.mutedAlt}
                   style={[styles.modalInput, styles.modalTextarea]}
                   multiline
@@ -894,4 +918,8 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 6
   }
+<<<<<<< HEAD
 });
+=======
+});
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3

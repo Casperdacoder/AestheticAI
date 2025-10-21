@@ -7,6 +7,7 @@ import {
   StyleSheet,
   FlatList,
   KeyboardAvoidingView,
+<<<<<<< HEAD
   Platform,
   Image,
   Modal,
@@ -20,12 +21,23 @@ import * as ImageManipulator from 'expo-image-manipulator';
 const INITIAL_MESSAGES = [
   { id: '1', type: 'ai', text: "Here's your current design preview." },
   { id: '2', type: 'ai', text: 'What would you like to customize?' },
+=======
+  Platform
+} from 'react-native';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { Screen, Toast, colors } from '../components/UI';
+
+const INITIAL_MESSAGES = [
+  { id: '1', type: 'ai', text: "Here's your current design." },
+  { id: '2', type: 'ai', text: 'What would you like to customize?' }
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
 ];
 
 export default function CustomizeWithAI({ navigation }) {
   const [text, setText] = useState('');
   const [saved, setSaved] = useState(false);
   const [messages, setMessages] = useState(INITIAL_MESSAGES);
+<<<<<<< HEAD
   const [previewUri, setPreviewUri] = useState(null);
   const [hasAiResult, setHasAiResult] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -33,6 +45,9 @@ export default function CustomizeWithAI({ navigation }) {
   const [processingEdit, setProcessingEdit] = useState(false);
   const replyTimeoutRef = useRef(null);
   const originalPreviewRef = useRef(null);
+=======
+  const replyTimeoutRef = useRef(null);
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
 
   useEffect(() => {
     return () => {
@@ -60,10 +75,16 @@ export default function CustomizeWithAI({ navigation }) {
       const aiMessage = {
         id: `${Date.now()}-ai`,
         type: 'ai',
+<<<<<<< HEAD
         text: 'Great! I am applying those changes and will show you the updated concept shortly.',
       };
       setMessages((prev) => [...prev, aiMessage]);
       setHasAiResult(true);
+=======
+        text: 'Your updates are on the way. AestheticAI is processing your request.'
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
       replyTimeoutRef.current = null;
     }, 800);
   };
@@ -136,13 +157,13 @@ export default function CustomizeWithAI({ navigation }) {
     <View
       style={[
         styles.chatBubble,
-        item.type === 'user' ? styles.userBubble : styles.aiBubble,
+        item.type === 'user' ? styles.userBubble : styles.aiBubble
       ]}
     >
       <Text
         style={[
           styles.chatText,
-          item.type === 'user' ? styles.userText : styles.aiText,
+          item.type === 'user' ? styles.userText : styles.aiText
         ]}
       >
         {item.text}
@@ -176,6 +197,7 @@ export default function CustomizeWithAI({ navigation }) {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.imageContainer}>
+<<<<<<< HEAD
             {previewUri ? (
               <TouchableOpacity
                 activeOpacity={0.85}
@@ -201,6 +223,11 @@ export default function CustomizeWithAI({ navigation }) {
               <Ionicons name="cloud-upload-outline" size={18} color="#0F3E48" />
               <Text style={styles.replaceButtonText}>{previewUri ? 'Replace preview image' : 'Upload preview image'}</Text>
             </TouchableOpacity>
+=======
+            <View style={styles.imagePlaceholder}>
+              <Text style={styles.imageText}>Current Design Preview</Text>
+            </View>
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
           </View>
         }
       />
@@ -302,24 +329,37 @@ export default function CustomizeWithAI({ navigation }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+<<<<<<< HEAD
     backgroundColor: colors.background,
+=======
+    backgroundColor: colors.background
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   heroSection: {
     backgroundColor: '#0F3E48',
     paddingTop: 56,
     paddingBottom: 28,
+<<<<<<< HEAD
     paddingHorizontal: 24,
+=======
+    paddingHorizontal: 24
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   backButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
+<<<<<<< HEAD
     alignItems: 'center',
+=======
+    alignItems: 'center'
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   heroTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#FFFFFF',
+<<<<<<< HEAD
     marginTop: 18,
   },
   heroSubtitle: {
@@ -337,10 +377,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
     gap: 12,
+=======
+    marginTop: 18
+  },
+  listContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 140,
+    paddingTop: 20,
+    gap: 12
+  },
+  imageContainer: {
+    alignItems: 'center',
+    marginBottom: 20
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   imagePlaceholder: {
     width: '100%',
     aspectRatio: 16 / 9,
+<<<<<<< HEAD
     maxWidth: 340,
     borderRadius: 18,
     backgroundColor: '#D9D9D9',
@@ -349,10 +403,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 20,
     gap: 10,
+=======
+    maxWidth: 320,
+    borderRadius: 16,
+    backgroundColor: '#D9D9D9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   imageText: {
     color: '#0F3E48',
     fontWeight: '600',
+<<<<<<< HEAD
     textAlign: 'center',
   },
   imageHint: {
@@ -406,10 +469,15 @@ const styles = StyleSheet.create({
   editBadgeTextDisabled: {
     color: colors.muted,
   },
+=======
+    textAlign: 'center'
+  },
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   chatBubble: {
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 16,
+<<<<<<< HEAD
     maxWidth: '82%',
   },
   aiBubble: {
@@ -419,25 +487,49 @@ const styles = StyleSheet.create({
   userBubble: {
     alignSelf: 'flex-start',
     backgroundColor: '#0F3E48',
+=======
+    maxWidth: '82%'
+  },
+  aiBubble: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#E1E8E8'
+  },
+  userBubble: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#0F3E48'
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   chatText: {
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 20
   },
+  aiText: {
+    color: '#0F3E48'
+  },
+  userText: {
+    color: '#FFFFFF'
+  },
+<<<<<<< HEAD
   aiText: {
     color: '#0F3E48',
   },
   userText: {
     color: '#FFFFFF',
   },
+=======
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   secondaryActions: {
     position: 'absolute',
     left: 24,
     right: 24,
     bottom: 118,
     flexDirection: 'row',
+<<<<<<< HEAD
     gap: 12,
     flexWrap: 'wrap',
+=======
+    gap: 12
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   secondaryButton: {
     flex: 1,
@@ -446,6 +538,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingVertical: 10,
     alignItems: 'center',
+<<<<<<< HEAD
     backgroundColor: colors.solid,
   },
   secondaryButtonFull: {
@@ -453,17 +546,28 @@ const styles = StyleSheet.create({
   },
   secondaryButtonDisabled: {
     opacity: 0.4,
+=======
+    backgroundColor: '#FFFFFF'
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   secondaryButtonText: {
     color: '#0F3E48',
     fontWeight: '600',
+<<<<<<< HEAD
     fontSize: 13,
+=======
+    fontSize: 13
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   composer: {
     position: 'absolute',
     left: 20,
     right: 20,
+<<<<<<< HEAD
     bottom: 40,
+=======
+    bottom: 40
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -474,15 +578,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     backgroundColor: colors.solid,
+<<<<<<< HEAD
     gap: 10,
   },
   uploadIcon: {
     marginRight: 4,
+=======
+    gap: 10
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   input: {
     flex: 1,
     color: '#0F3E48',
     fontSize: 14,
+<<<<<<< HEAD
     paddingVertical: 6,
   },
   editModalOverlay: {
@@ -585,5 +694,11 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: colors.primaryText,
     fontWeight: '700',
+=======
+    paddingVertical: 6
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
+  uploadIcon: {
+    marginRight: 4
+  }
 });

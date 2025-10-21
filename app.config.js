@@ -1,5 +1,9 @@
+<<<<<<< HEAD
 ﻿// app.config.js
 import 'dotenv/config';
+=======
+﻿import 'dotenv/config';
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
 
 export default {
   expo: {
@@ -47,6 +51,7 @@ export default {
         'CAMERA',
         'READ_EXTERNAL_STORAGE',
         'WRITE_EXTERNAL_STORAGE',
+<<<<<<< HEAD
         'READ_MEDIA_IMAGES',
       ],
       package: 'com.mcclien.aestheticaiexpo',
@@ -63,6 +68,24 @@ export default {
 
     runtimeVersion: { policy: 'appVersion' },
 
+=======
+        'READ_MEDIA_IMAGES'
+      ],
+      package: 'com.mcclien.aestheticaiexpo'
+    },
+    assetBundlePatterns: ['**/*'],
+
+    // ✅ Corrected EAS Update config
+    updates: {
+      url: "https://u.expo.dev/e34071e2-f237-4975-a8a9-354d342d5e59",
+      checkAutomatically: "ON_LOAD",
+      fallbackToCacheTimeout: 0
+    },
+    runtimeVersion: {
+      policy: "appVersion"
+    },
+
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
     extra: {
       // Public base URL for your own backend
       apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL,
@@ -81,6 +104,7 @@ export default {
       // Hugging Face
       huggingface: {
         token: process.env.HUGGINGFACE_TOKEN,
+<<<<<<< HEAD
         imageModel:
           process.env.HUGGINGFACE_IMAGE_MODEL ||
           'Salesforce/blip-image-captioning-base',
@@ -100,4 +124,17 @@ export default {
       },
     },
   },
+=======
+        imageModel: process.env.HUGGINGFACE_IMAGE_MODEL || 'Salesforce/blip-image-captioning-base',
+        textModel: process.env.HUGGINGFACE_TEXT_MODEL || 'HuggingFaceH4/zephyr-7b-beta'
+      },
+      googleVision: {
+        apiKey: process.env.GOOGLE_VISION_API_KEY
+      },
+      eas: {
+        projectId: 'e34071e2-f237-4975-a8a9-354d342d5e59'
+      }
+    }
+  }
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
 };

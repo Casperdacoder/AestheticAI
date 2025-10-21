@@ -110,7 +110,11 @@ export default function ChatScreen({ route, navigation }) {
     );
   }
 
+<<<<<<< HEAD
   const consultationLabel = consultationId ? Consultation ... : 'Consultation chat';
+=======
+  const consultationLabel = consultationId ? `Consultation ${consultationId.slice(0, 6)}…` : 'Consultation chat';
+>>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   const disableSend = !draft.trim() || sending;
 
   return (
