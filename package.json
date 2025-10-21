@@ -33,6 +33,8 @@
   },
   "private": true,
   "devDependencies": {
-    "dotenv": "^17.2.2"
+    "@types/react": "~19.1.10",
+    "dotenv": "^17.2.2",
+    "typescript": "~5.9.2"
   }
 }

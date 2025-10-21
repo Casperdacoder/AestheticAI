@@ -1,925 +1,550 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  StatusBar,
+  ActivityIndicator,
   Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
   TextInput,
-  TouchableWithoutFeedback,
-  ActivityIndicator
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen, Card, Button, Toast, colors } from '../components/UI';
+import { Screen, Button, Card, Toast, colors } from '../components/UI';
 import { auth } from '../services/firebase';
 import { getCachedUserRole } from '../services/userCache';
-import { createConsultationRequest, listenToConsultations, updateConsultationStatus } from '../services/consultations';
+import {
+  createConsultationRequest,
+  listenToConsultations,
+  updateConsultationStatus,
+} from '../services/consultations';
 import { ensureConsultationChat } from '../services/chat';
 
-const BOOKING_TABS = ['All', 'Pending', 'Approved', 'Rejected', 'Completed'];
+const STATUS_TABS = ['All', 'Pending', 'Approved', 'Completed', 'Rejected'];
 
-const INITIAL_BOOKINGS = [
-  {
-    id: 'sample-1',
-    clientName: 'Maria Santos',
-    clientEmail: 'maria.santos@example.com',
-    project: 'Living Room Redesign',
-    details: 'Prefers light colors and a modern theme.',
-    status: 'Pending',
-    createdAt: new Date('2025-09-27T14:00:00Z').getTime()
-  },
-  {
-    id: 'sample-2',
-    clientName: 'Juan Dela Cruz',
-    clientEmail: 'juan.delacruz@example.com',
-    project: 'Minimalist Bedroom',
-    details: 'Focus on storage without clutter.',
-    status: 'Approved',
-    createdAt: new Date('2025-09-29T10:00:00Z').getTime()
-  }
-];
-
-const STATUS_BADGE_STYLE = {
+const STATUS_BADGES = {
   Pending: { color: '#3A7D44', backgroundColor: 'rgba(58,125,68,0.12)' },
   Approved: { color: '#1B5B5A', backgroundColor: 'rgba(27,91,90,0.12)' },
+  Completed: { color: '#353535', backgroundColor: 'rgba(53,53,53,0.12)' },
   Rejected: { color: '#B9383A', backgroundColor: 'rgba(185,56,58,0.12)' },
-  Completed: { color: '#353535', backgroundColor: 'rgba(53,53,53,0.12)' }
 };
 
-<<<<<<< HEAD
-const FALLBACK_TOAST_DURATION = 2600;
-=======
-const FALLBACK_MESSAGE_DURATION = 2600;
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
-
-function formatSubmittedAt(timestamp) {
-  if (!timestamp) {
-    return 'Awaiting schedule';
-  }
-
-  const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) {
-    return 'Awaiting schedule';
-  }
-
-  const month = date.toLocaleString('en-US', { month: 'short' });
-  const day = date.getDate();
-  const year = date.getFullYear();
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const hours = date.getHours();
-  const period = hours >= 12 ? 'PM' : 'AM';
-  const hour12 = hours % 12 || 12;
-
-  return `${month} ${day}, ${year} · ${hour12}:${minutes} ${period}`;
-}
-
-function getStatusBadgeStyle(status) {
-  return STATUS_BADGE_STYLE[status] || {
-    color: colors.subtleText,
-    backgroundColor: 'rgba(15,62,72,0.12)'
-  };
-}
-
-function getClientName(booking) {
-  return booking?.clientName || booking?.client || 'Client';
-}
-
 export default function ConsultantScreen({ navigation }) {
+  const [currentUserId, setCurrentUserId] = useState(auth.currentUser?.uid || null);
   const [isDesigner, setIsDesigner] = useState(false);
   const [roleChecked, setRoleChecked] = useState(false);
-  const [bookings, setBookings] = useState([]);
-  const [usingFallbackData, setUsingFallbackData] = useState(false);
-  const [activeTab, setActiveTab] = useState('All');
+  const [consultations, setConsultations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
-  const [modalState, setModalState] = useState({ visible: false, action: null, booking: null, loading: false });
-  const [isRequestModalVisible, setRequestModalVisible] = useState(false);
-  const [consultRequest, setConsultRequest] = useState({ name: '', email: '', project: '', details: '' });
+  const [activeTab, setActiveTab] = useState('All');
+  const [requestModalVisible, setRequestModalVisible] = useState(false);
+  const [requestForm, setRequestForm] = useState({ name: '', email: '', project: '', details: '' });
   const [savingRequest, setSavingRequest] = useState(false);
-  const [loading, setLoading] = useState(false);
 
-  const toastTimeoutRef = useRef(null);
-
-  const showToast = useCallback((message, variant = 'info', duration = 2200) => {
-    setToast({ message, variant });
-    if (toastTimeoutRef.current) {
-      clearTimeout(toastTimeoutRef.current);
+  useEffect(() => {
+    if (typeof auth.onAuthStateChanged !== 'function') {
+      return undefined;
     }
-    toastTimeoutRef.current = setTimeout(() => {
-      setToast(null);
-      toastTimeoutRef.current = null;
-    }, duration);
+
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      const uid = user?.uid || null;
+      setCurrentUserId(uid);
+    });
+
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (toastTimeoutRef.current) {
-        clearTimeout(toastTimeoutRef.current);
-      }
-    };
-  }, []);
+    let isMounted = true;
 
-  useEffect(() => {
-    let mounted = true;
-
-    const applyRole = async (user) => {
+    const resolveRole = async () => {
       try {
-        if (!user) {
-          if (mounted) {
+        if (!currentUserId) {
+          if (isMounted) {
             setIsDesigner(false);
             setRoleChecked(true);
           }
           return;
         }
-        const cachedRole = await getCachedUserRole(user.uid);
-        if (mounted) {
-          setIsDesigner((cachedRole || 'user') === 'designer');
+
+        const role = await getCachedUserRole(currentUserId);
+        if (isMounted) {
+          setIsDesigner((role || 'user') === 'designer');
           setRoleChecked(true);
         }
       } catch (error) {
         console.warn('Failed to resolve user role', error);
-        if (mounted) {
+        if (isMounted) {
           setIsDesigner(false);
           setRoleChecked(true);
         }
       }
     };
 
-    if (typeof auth.onAuthStateChanged === 'function') {
-      const unsubscribe = auth.onAuthStateChanged((user) => {
-        applyRole(user);
-      });
-      return () => {
-        mounted = false;
-        unsubscribe();
-      };
-    }
-
-    applyRole(auth.currentUser || null);
+    resolveRole();
 
     return () => {
-      mounted = false;
+      isMounted = false;
     };
-  }, []);
+  }, [currentUserId]);
 
   useEffect(() => {
-    if (!isDesigner) {
-      setBookings([]);
-      setUsingFallbackData(false);
-      setLoading(false);
+    setLoading(true);
+    const unsubscribe = listenToConsultations(
+      (items) => {
+        setConsultations(items);
+        setLoading(false);
+      },
+      (error) => {
+        console.warn('Failed to subscribe to consultations', error);
+        setConsultations([]);
+        setLoading(false);
+        setToast({ message: 'Unable to load consultations.', variant: 'danger' });
+        setTimeout(() => setToast(null), 2400);
+      }
+    );
+
+    return unsubscribe;
+  }, []);
+
+  const visibleConsultations = useMemo(() => {
+    let items = consultations;
+    if (!isDesigner && currentUserId) {
+      items = items.filter((item) => item.userId === currentUserId || item.clientId === currentUserId);
+    }
+    if (activeTab !== 'All') {
+      items = items.filter((item) => (item.status || 'Pending') === activeTab);
+    }
+    return items;
+  }, [consultations, activeTab, isDesigner, currentUserId]);
+
+  const heroSubtitle = useMemo(() => {
+    if (!roleChecked) {
+      return 'Checking your workspace…';
+    }
+    return isDesigner
+      ? 'Manage consultation requests and keep clients up to date.'
+      : 'Request a consultation and track the status of your project.';
+  }, [isDesigner, roleChecked]);
+
+  const handleStatusChange = async (booking, status) => {
+    if (!booking?.id) {
       return;
     }
+    try {
+      await updateConsultationStatus(booking.id, status, {
+        statusUpdatedBy: currentUserId || null,
+      });
+      setToast({ message: `Marked as ${status}.`, variant: 'success' });
+    } catch (error) {
+      console.warn('Failed to update consultation', error);
+      setToast({ message: 'Unable to update status. Try again.', variant: 'danger' });
+    } finally {
+      setTimeout(() => setToast(null), 2200);
+    }
+  };
 
-    let fallbackInjected = false;
-    let unsubscribe = () => {};
-    setLoading(true);
+  const handleOpenChat = async (booking) => {
+    if (!booking?.id) {
+      return;
+    }
+    const consultantId = booking.consultantId || (isDesigner ? currentUserId : booking.designerId);
+    const clientId = booking.userId || booking.clientId;
 
-<<<<<<< HEAD
-    const injectFallback = () => {
-=======
-    const handleFallback = () => {
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
-      if (fallbackInjected) {
-        return;
-      }
-      fallbackInjected = true;
-      setUsingFallbackData(true);
-      setBookings(INITIAL_BOOKINGS);
-      setLoading(false);
-<<<<<<< HEAD
-      showToast('Showing sample consultations while offline.', 'warning', FALLBACK_TOAST_DURATION);
-=======
-      showToast('Showing sample consultations while offline.', 'warning', FALLBACK_MESSAGE_DURATION);
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
-    };
+    if (!consultantId || !clientId) {
+      setToast({ message: 'Chat is unavailable for this consultation yet.', variant: 'warning' });
+      setTimeout(() => setToast(null), 2200);
+      return;
+    }
 
     try {
-      unsubscribe = listenToConsultations(
-        (items) => {
-          setBookings(items);
-          setUsingFallbackData(false);
-          setLoading(false);
-        },
-        (error) => {
-          console.warn('Failed to load consultations', error);
-<<<<<<< HEAD
-          injectFallback();
-=======
-          handleFallback();
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
-        }
-      );
+      const chat = await ensureConsultationChat({
+        consultationId: booking.id,
+        userId: clientId,
+        consultantId,
+        clientName: booking.clientName || booking.name || 'Client',
+        consultantName: booking.consultantName || 'Consultant',
+      });
+
+      navigation.navigate('Chat', {
+        chatId: chat.id,
+        participantName: isDesigner ? booking.clientName || 'Client' : booking.consultantName || 'Consultant',
+        consultationId: booking.id,
+      });
     } catch (error) {
-      console.warn('Failed to subscribe to consultations', error);
-<<<<<<< HEAD
-      injectFallback();
-=======
-      handleFallback();
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
-    }
-
-    return () => {
-      fallbackInjected = true;
-      if (typeof unsubscribe === 'function') {
-        unsubscribe();
-      }
-    };
-  }, [isDesigner, showToast]);
-
-  const filteredBookings = useMemo(() => {
-    if (activeTab === 'All') {
-      return bookings;
-    }
-    return bookings.filter((item) => item.status === activeTab);
-  }, [activeTab, bookings]);
-
-  const closeDecisionModal = () => {
-    setModalState({ visible: false, action: null, booking: null, loading: false });
-  };
-
-  const closeRequestModal = () => {
-    if (!savingRequest) {
-      setRequestModalVisible(false);
+      console.warn('Failed to open consultation chat', error);
+      setToast({ message: 'Unable to open chat right now.', variant: 'danger' });
+      setTimeout(() => setToast(null), 2200);
     }
   };
 
-  const handleDecisionPress = (action, booking) => {
-    setModalState({ visible: true, action, booking, loading: false });
-  };
-
-  const handleConsultPress = () => {
-    setConsultRequest({ name: '', email: '', project: '', details: '' });
-    setRequestModalVisible(true);
-  };
-
-  const handleRequestChange = (field, value) => {
-    setConsultRequest((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmitConsultRequest = async () => {
-    if (savingRequest) {
+  const handleSubmitRequest = async () => {
+    const { name, email, project, details } = requestForm;
+    if (!name.trim() || !email.trim() || !project.trim()) {
+      setToast({ message: 'Fill in all required fields to submit.', variant: 'warning' });
+      setTimeout(() => setToast(null), 2200);
       return;
     }
-
-    if (!consultRequest.name.trim() || !consultRequest.email.trim() || !consultRequest.project.trim()) {
-      showToast('Please complete the required fields.', 'warning', 1800);
-      return;
-    }
-
-    const payload = {
-      clientName: consultRequest.name.trim(),
-      clientEmail: consultRequest.email.trim(),
-      project: consultRequest.project.trim(),
-      details: consultRequest.details.trim(),
-      userId: auth.currentUser?.uid || null
-    };
 
     setSavingRequest(true);
     try {
-      await createConsultationRequest(payload);
-      setConsultRequest({ name: '', email: '', project: '', details: '' });
+      await createConsultationRequest({
+        clientName: name.trim(),
+        clientEmail: email.trim(),
+        project: project.trim(),
+        details: details.trim(),
+        userId: currentUserId || null,
+        status: 'Pending',
+      });
+      setRequestForm({ name: '', email: '', project: '', details: '' });
       setRequestModalVisible(false);
-      showToast('Consultation request sent!', 'success');
+      setToast({ message: 'Consultation requested!', variant: 'success' });
     } catch (error) {
       console.warn('Failed to create consultation request', error);
-      showToast('Could not send request. Please try again.', 'danger', 2400);
+      setToast({ message: 'Unable to submit request. Try again.', variant: 'danger' });
     } finally {
       setSavingRequest(false);
+      setTimeout(() => setToast(null), 2200);
     }
-  };
-
-  const handleModalConfirm = async () => {
-    const { booking, action } = modalState;
-    if (!booking || !action) {
-      closeDecisionModal();
-      return;
-    }
-
-    const nextStatus = action === 'accept' ? 'Approved' : action === 'reject' ? 'Rejected' : null;
-    if (!nextStatus) {
-      closeDecisionModal();
-      return;
-    }
-
-    const consultantId = auth.currentUser?.uid || null;
-    if (!consultantId) {
-      showToast('You need to be signed in to manage consultations.', 'danger', 2400);
-      closeDecisionModal();
-      return;
-    }
-
-    setModalState((prev) => ({ ...prev, loading: true }));
-
-    try {
-      const metadata = { statusUpdatedBy: consultantId };
-      let chatId = booking.chatId || null;
-
-      if (nextStatus === 'Approved') {
-        if (!booking.userId) {
-          throw new Error('Consultation request is missing the requester account.');
-        }
-
-        const chat = await ensureConsultationChat({
-          consultationId: booking.id,
-          userId: booking.userId,
-          consultantId,
-          clientName: getClientName(booking),
-          consultantName: auth.currentUser?.displayName || 'Consultant'
-        });
-
-        chatId = chat.id;
-        metadata.consultantId = consultantId;
-        metadata.chatId = chatId;
-      }
-
-      await updateConsultationStatus(booking.id, nextStatus, metadata);
-
-      setBookings((current) =>
-        current.map((item) =>
-          item.id === booking.id ? { ...item, status: nextStatus, chatId } : item
-        )
-      );
-
-      showToast(
-        nextStatus === 'Approved'
-          ? 'Booking accepted! You can now chat with your client.'
-          : 'You have rejected the booking request.',
-        nextStatus === 'Approved' ? 'success' : 'danger'
-      );
-
-      closeDecisionModal();
-
-      if (nextStatus === 'Approved' && chatId) {
-        navigation.navigate('Chat', {
-          chatId,
-          consultationId: booking.id,
-          participantName: getClientName(booking)
-        });
-      }
-    } catch (error) {
-      console.warn('Failed to update consultation status', error);
-      setModalState((prev) => ({ ...prev, loading: false }));
-      showToast('Failed to update the booking. Please try again.', 'danger', 2400);
-    }
-  };
-
-  const handleOpenChat = (booking) => {
-    if (!booking?.chatId) {
-      showToast('Chat is not ready yet. Please try again shortly.', 'info', 2200);
-      return;
-    }
-
-    navigation.navigate('Chat', {
-      chatId: booking.chatId,
-      consultationId: booking.id,
-      participantName: getClientName(booking)
-    });
   };
 
   const renderBooking = (booking) => {
-    const badgeStyle = getStatusBadgeStyle(booking.status);
-    const canRespond = booking.status === 'Pending';
-    const details = booking.details?.trim() ? booking.details.trim() : 'No additional notes yet.';
-    const timestampLabel = formatSubmittedAt(booking.createdAt);
+    const status = booking.status || 'Pending';
+    const badgeStyles = STATUS_BADGES[status] || {
+      color: colors.subtleText,
+      backgroundColor: 'rgba(15,62,72,0.12)',
+    };
 
     return (
       <Card key={booking.id} style={styles.bookingCard}>
         <View style={styles.bookingHeader}>
-          <View style={styles.bookingMeta}>
-            <Text style={styles.bookingClient}>{getClientName(booking)}</Text>
-            <Text style={styles.bookingProject}>{booking.project || 'Project details pending'}</Text>
+          <View style={styles.bookingTitleBlock}>
+            <Text style={styles.bookingTitle}>{booking.project || 'Untitled project'}</Text>
+            <Text style={styles.bookingSubtitle}>
+              {booking.clientName || booking.name || 'Client'} · {booking.clientEmail || 'No email provided'}
+            </Text>
           </View>
-          <View style={[styles.badge, { backgroundColor: badgeStyle.backgroundColor }]}>
-            <Text style={[styles.badgeText, { color: badgeStyle.color }]}>{booking.status || 'Pending'}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: badgeStyles.backgroundColor }]}>
+            <Text style={[styles.statusBadgeText, { color: badgeStyles.color }]}>{status}</Text>
           </View>
         </View>
-        <Text style={styles.bookingDetails}>{details}</Text>
-        <Text style={styles.bookingTimestamp}>{timestampLabel}</Text>
-        <View style={styles.actionsRow}>
-          <Button
-            title="Open Chat"
-            variant="outline"
-            onPress={() => handleOpenChat(booking)}
-            style={styles.actionButton}
-            disabled={!booking.chatId}
-          />
-          {canRespond ? (
-            <>
-              <Button
-                title="Accept"
-                onPress={() => handleDecisionPress('accept', booking)}
-                style={styles.primaryAction}
-              />
-              <Button
-                title="Reject"
-                variant="outline"
-                onPress={() => handleDecisionPress('reject', booking)}
-                style={[styles.actionButton, styles.rejectButton]}
-                textStyle={styles.rejectText}
-              />
-            </>
+
+        {booking.details ? <Text style={styles.bookingDetails}>{booking.details}</Text> : null}
+        <Text style={styles.bookingMeta}>Submitted {formatSubmittedAt(booking.createdAt)}</Text>
+
+        <View style={styles.bookingActions}>
+          <Button title="Open Chat" variant="secondary" onPress={() => handleOpenChat(booking)} />
+          {isDesigner ? (
+            <View style={styles.actionRow}>
+              {status !== 'Approved' ? (
+                <Button title="Approve" onPress={() => handleStatusChange(booking, 'Approved')} />
+              ) : null}
+              {status !== 'Completed' ? (
+                <Button title="Complete" variant="outline" onPress={() => handleStatusChange(booking, 'Completed')} />
+              ) : null}
+              {status !== 'Rejected' ? (
+                <Button title="Reject" variant="ghost" onPress={() => handleStatusChange(booking, 'Rejected')} />
+              ) : null}
+            </View>
           ) : null}
         </View>
       </Card>
     );
   };
 
-  const renderDecisionModal = (
-    <Modal
-      transparent
-      animationType="fade"
-      visible={modalState.visible}
-      onRequestClose={() => {
-        if (!modalState.loading) {
-          closeDecisionModal();
-        }
-      }}
-    >
-      <TouchableWithoutFeedback
-        onPress={() => {
-          if (!modalState.loading) {
-            closeDecisionModal();
-          }
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <TouchableWithoutFeedback onPress={() => {}}>
-            <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>
-                {modalState.action === 'accept' ? 'Accept consultation' : 'Reject consultation'}
-              </Text>
-              <Text style={styles.modalMessage}>
-                {modalState.action === 'accept'
-                  ? 'Accepting will notify the client and open a chat room so you can coordinate the next steps.'
-                  : 'Rejecting will let the client know you are unavailable for this request.'}
-              </Text>
-              <View style={styles.modalActions}>
-                <Button
-                  title={
-                    modalState.loading
-                      ? 'Processing...'
-                      : modalState.action === 'accept'
-                        ? 'Accept'
-                        : 'Reject'
-                  }
-                  onPress={handleModalConfirm}
-                  style={styles.modalButton}
-                  variant={modalState.action === 'reject' ? 'outline' : 'primary'}
-                  textStyle={modalState.action === 'reject' ? styles.rejectText : null}
-                  disabled={modalState.loading}
-                />
-                <Button
-                  title="Cancel"
-                  onPress={closeDecisionModal}
-                  variant="outline"
-                  style={styles.modalButton}
-                  disabled={modalState.loading}
-                />
-              </View>
-            </View>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
-    </Modal>
-  );
-
-  const renderRequestModal = (
-    <Modal
-      transparent
-      animationType="fade"
-      visible={isRequestModalVisible}
-      onRequestClose={closeRequestModal}
-    >
-      <TouchableWithoutFeedback
-        onPress={() => {
-          if (!savingRequest) {
-            closeRequestModal();
-          }
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <TouchableWithoutFeedback onPress={() => {}}>
-            <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Consultation Request</Text>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Your name*</Text>
-                <TextInput
-                  value={consultRequest.name}
-                  onChangeText={(value) => handleRequestChange('name', value)}
-                  placeholder="Jane Doe"
-                  placeholderTextColor={colors.mutedAlt}
-                  style={styles.modalInput}
-                />
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Email*</Text>
-                <TextInput
-                  value={consultRequest.email}
-                  onChangeText={(value) => handleRequestChange('email', value)}
-                  placeholder="hello@example.com"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  placeholderTextColor={colors.mutedAlt}
-                  style={styles.modalInput}
-                />
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Project focus*</Text>
-                <TextInput
-                  value={consultRequest.project}
-                  onChangeText={(value) => handleRequestChange('project', value)}
-                  placeholder="Kitchen renovation, cozy living room..."
-                  placeholderTextColor={colors.mutedAlt}
-                  style={styles.modalInput}
-                />
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>What would you like help with?</Text>
-                <TextInput
-                  value={consultRequest.details}
-                  onChangeText={(value) => handleRequestChange('details', value)}
-<<<<<<< HEAD
-                  placeholder='Share goals, constraints, vibe...'
-=======
-                  placeholder="Share goals, constraints, vibe..."
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
-                  placeholderTextColor={colors.mutedAlt}
-                  style={[styles.modalInput, styles.modalTextarea]}
-                  multiline
-                />
-              </View>
-              <View style={styles.modalActions}>
-                <Button
-                  title={savingRequest ? 'Sending...' : 'Send request'}
-                  onPress={handleSubmitConsultRequest}
-                  style={styles.modalButton}
-                  disabled={savingRequest}
-                />
-                <Button
-                  title="Cancel"
-                  onPress={closeRequestModal}
-                  variant="outline"
-                  style={styles.modalButton}
-                  disabled={savingRequest}
-                />
-              </View>
-            </View>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
-    </Modal>
-  );
-
-  if (!roleChecked) {
-    return (
-      <Screen inset={false} style={styles.loadingScreen}>
-        <ActivityIndicator size="small" color={colors.primary} />
-        <Text style={styles.loadingText}>Preparing your workspace...</Text>
-      </Screen>
-    );
-  }
-
-  if (!isDesigner) {
-    return (
-      <Screen inset={false} style={styles.viewerScreen}>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-        {toast ? <Toast visible text={toast.message} onClose={() => setToast(null)} variant={toast.variant} /> : null}
-
-        <View style={styles.viewerIntro}>
-          <Text style={styles.viewerTitle}>Consult with a designer</Text>
-          <Text style={styles.viewerSubtitle}>
-            Share your project goals and we will connect you with a specialist who can guide you through the process.
-          </Text>
-        </View>
-
-        <Card style={styles.viewerCard}>
-          <View style={styles.viewerRow}>
-            <View style={styles.viewerIconWrap}>
-              <Ionicons name="chatbubbles-outline" size={22} color={colors.primaryText} />
-            </View>
-            <View style={styles.viewerCopy}>
-              <Text style={styles.viewerCardTitle}>Personalised design guidance</Text>
-              <Text style={styles.viewerCardSubtitle}>
-                Describe your space, style, and timeline. A consultant will reach out with tailored recommendations.
-              </Text>
-            </View>
-          </View>
-          <Button title="Request a consultation" onPress={handleConsultPress} />
-        </Card>
-
-        {renderRequestModal}
-      </Screen>
-    );
-  }
-
   return (
     <Screen inset={false} style={styles.screen}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.surface} />
-      {toast ? <Toast visible text={toast.message} onClose={() => setToast(null)} variant={toast.variant} /> : null}
+      {toast ? (
+        <Toast visible text={toast.message} onClose={() => setToast(null)} variant={toast.variant} />
+      ) : null}
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Consultation Studio</Text>
-          <Text style={styles.heroSubtitle}>
-            Review incoming requests, respond to clients, and keep every project on track.
-          </Text>
-          {usingFallbackData ? (
-            <Text style={styles.fallbackNotice}>Showing sample consultations while we reconnect.</Text>
-          ) : null}
+      <View style={styles.hero}>
+        <Text style={styles.heroTitle}>Consultations</Text>
+        <Text style={styles.heroSubtitle}>{heroSubtitle}</Text>
+        {!isDesigner ? (
+          <Button title="Request a consultation" onPress={() => setRequestModalVisible(true)} />
+        ) : null}
+      </View>
 
-          <View style={styles.tabRow}>
-            {BOOKING_TABS.map((tab) => {
-              const active = activeTab === tab;
-              return (
-                <TouchableOpacity
-                  key={tab}
-                  style={[styles.tabChip, active && styles.tabChipActive]}
-                  onPress={() => setActiveTab(tab)}
-                  activeOpacity={0.85}
-                >
-                  <Text style={[styles.tabChipText, active && styles.tabChipTextActive]}>{tab}</Text>
-                </TouchableOpacity>
-              );
-            })}
+      <View style={styles.tabsRow}>
+        {STATUS_TABS.map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tabChip, activeTab === tab && styles.tabChipActive]}
+            onPress={() => setActiveTab(tab)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.tabChipText, activeTab === tab && styles.tabChipTextActive]}>{tab}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {loading ? (
+        <View style={styles.loader}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={styles.loaderText}>Loading consultations…</Text>
+        </View>
+      ) : null}
+
+      <ScrollView
+        contentContainerStyle={visibleConsultations.length === 0 ? styles.emptyScroll : styles.listScroll}
+        showsVerticalScrollIndicator={false}
+      >
+        {visibleConsultations.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="calendar-outline" size={28} color={colors.mutedAlt} />
+            <Text style={styles.emptyText}>No consultations in this state yet.</Text>
           </View>
-        </View>
-
-        <View style={styles.bookingList}>
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator color={colors.primary} />
-              <Text style={styles.loadingHint}>Loading consultations...</Text>
-            </View>
-          ) : filteredBookings.length === 0 ? (
-            <View style={styles.listEmpty}>
-              <Ionicons name="calendar-outline" size={22} color={colors.mutedAlt} />
-              <Text style={styles.listEmptyText}>No consultations in this state yet.</Text>
-            </View>
-          ) : (
-            filteredBookings.map((booking) => renderBooking(booking))
-          )}
-        </View>
+        ) : (
+          visibleConsultations.map(renderBooking)
+        )}
       </ScrollView>
 
-      {renderDecisionModal}
+      <Modal
+        visible={requestModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setRequestModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Request a consultation</Text>
+              <TouchableOpacity onPress={() => setRequestModalVisible(false)}>
+                <Ionicons name="close" size={22} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Your name"
+                placeholderTextColor={colors.muted}
+                value={requestForm.name}
+                onChangeText={(value) => setRequestForm((prev) => ({ ...prev, name: value }))}
+              />
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Email address"
+                placeholderTextColor={colors.muted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={requestForm.email}
+                onChangeText={(value) => setRequestForm((prev) => ({ ...prev, email: value }))}
+              />
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Project title"
+                placeholderTextColor={colors.muted}
+                value={requestForm.project}
+                onChangeText={(value) => setRequestForm((prev) => ({ ...prev, project: value }))}
+              />
+              <TextInput
+                style={[styles.modalInput, styles.modalTextarea]}
+                placeholder="Share details about the space, goals, and budget."
+                placeholderTextColor={colors.muted}
+                multiline
+                numberOfLines={4}
+                value={requestForm.details}
+                onChangeText={(value) => setRequestForm((prev) => ({ ...prev, details: value }))}
+              />
+            </View>
+
+            <Button
+              title={savingRequest ? 'Submitting…' : 'Submit request'}
+              onPress={handleSubmitRequest}
+              disabled={savingRequest}
+            />
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
+}
+
+function formatSubmittedAt(timestamp) {
+  if (!timestamp) {
+    return 'Awaiting schedule';
+  }
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
+    return 'Awaiting schedule';
+  }
+  return date.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.background
-  },
-  scrollContent: {
-    paddingBottom: 32
+    backgroundColor: colors.background,
   },
   hero: {
-    backgroundColor: colors.surface,
-    paddingTop: 56,
-    paddingBottom: 32,
+    paddingTop: 60,
     paddingHorizontal: 24,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    gap: 12
+    paddingBottom: 24,
+    backgroundColor: '#0F2E32',
+    gap: 12,
   },
   heroTitle: {
     color: colors.primaryText,
-    fontSize: 24,
-    fontWeight: '700'
+    fontSize: 26,
+    fontWeight: '700',
   },
   heroSubtitle: {
-    color: 'rgba(255,255,255,0.82)',
+    color: 'rgba(255,255,255,0.88)',
     fontSize: 14,
-    lineHeight: 20
+    lineHeight: 20,
   },
-  fallbackNotice: {
-    color: 'rgba(255,255,255,0.68)',
-    fontSize: 12
-  },
-  tabRow: {
+  tabsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 8
+    gap: 8,
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+    marginTop: -12,
   },
   tabChip: {
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)'
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
   },
   tabChipActive: {
-    backgroundColor: colors.primaryText,
-    borderColor: colors.primaryText
+    backgroundColor: colors.primary,
   },
   tabChipText: {
-    color: colors.primaryText,
+    color: colors.subtleText,
     fontWeight: '600',
-    fontSize: 13
+    fontSize: 13,
   },
   tabChipTextActive: {
-    color: colors.surface
+    color: colors.primaryText,
   },
-  bookingList: {
+  loader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     paddingHorizontal: 24,
-    paddingTop: 24,
-    gap: 18
+    marginBottom: 12,
+  },
+  loaderText: {
+    color: colors.mutedAlt,
+    fontSize: 13,
+  },
+  listScroll: {
+    paddingHorizontal: 24,
+    paddingBottom: 120,
+    gap: 16,
+  },
+  emptyScroll: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingBottom: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyState: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  emptyText: {
+    color: colors.mutedAlt,
+    fontSize: 14,
+    textAlign: 'center',
   },
   bookingCard: {
-    gap: 16
+    gap: 14,
   },
   bookingHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start'
+    gap: 16,
   },
-  bookingMeta: {
-    maxWidth: '70%',
-    gap: 4
+  bookingTitleBlock: {
+    flex: 1,
+    gap: 4,
   },
-  bookingClient: {
-    color: colors.subtleText,
-    fontSize: 16,
-    fontWeight: '700'
-  },
-  bookingProject: {
-    color: colors.mutedAlt,
-    fontSize: 14
-  },
-  badge: {
-    borderRadius: 14,
-    paddingVertical: 4,
-    paddingHorizontal: 10
-  },
-  badgeText: {
-    fontSize: 12,
+  bookingTitle: {
+    color: colors.primaryText,
+    fontSize: 18,
     fontWeight: '700',
-    textTransform: 'uppercase'
+  },
+  bookingSubtitle: {
+    color: colors.mutedAlt,
+    fontSize: 13,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    alignSelf: 'flex-start',
+  },
+  statusBadgeText: {
+    fontWeight: '600',
+    fontSize: 12,
+    textTransform: 'uppercase',
   },
   bookingDetails: {
     color: colors.subtleText,
     fontSize: 14,
-    lineHeight: 20
+    lineHeight: 20,
   },
-  bookingTimestamp: {
+  bookingMeta: {
     color: colors.mutedAlt,
-    fontSize: 12
+    fontSize: 12,
   },
-  actionsRow: {
+  bookingActions: {
+    gap: 12,
+  },
+  actionRow: {
     flexDirection: 'row',
+    gap: 10,
     flexWrap: 'wrap',
-    gap: 12
-  },
-  actionButton: {
-    flexGrow: 1,
-    minWidth: 120
-  },
-  primaryAction: {
-    flexGrow: 1,
-    minWidth: 120
-  },
-  rejectButton: {
-    borderColor: colors.danger
-  },
-  rejectText: {
-    color: colors.danger
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    gap: 12
-  },
-  loadingHint: {
-    color: colors.mutedAlt,
-    fontSize: 13
-  },
-  listEmpty: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 48,
-    gap: 12
-  },
-  listEmptyText: {
-    color: colors.mutedAlt,
-    fontSize: 14
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: colors.overlay,
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24
+    padding: 24,
   },
   modalCard: {
     width: '100%',
-    borderRadius: 24,
+    maxWidth: 360,
     backgroundColor: colors.solid,
+    borderRadius: 24,
     padding: 24,
-    gap: 18
+    gap: 18,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   modalTitle: {
+    color: colors.subtleText,
     fontSize: 20,
     fontWeight: '700',
-    color: colors.subtleText
   },
-  modalMessage: {
-    color: colors.mutedAlt,
-    fontSize: 14,
-    lineHeight: 20
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12
-  },
-  modalButton: {
-    flex: 1
+  modalBody: {
+    gap: 12,
   },
   modalInput: {
-    backgroundColor: '#F4F6F6',
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.outline,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: colors.subtleText
+    color: colors.subtleText,
+    backgroundColor: colors.solid,
   },
   modalTextarea: {
-    minHeight: 96,
-    textAlignVertical: 'top'
+    height: 120,
+    textAlignVertical: 'top',
   },
-  inputGroup: {
-    gap: 8
-  },
-  inputLabel: {
-    color: colors.subtleText,
-    fontSize: 13,
-    fontWeight: '600'
-  },
-  loadingScreen: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12
-  },
-  loadingText: {
-    color: colors.mutedAlt,
-    fontSize: 13
-  },
-  viewerScreen: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 48,
-    gap: 24
-  },
-  viewerIntro: {
-    gap: 10
-  },
-  viewerTitle: {
-    color: colors.subtleText,
-    fontSize: 26,
-    fontWeight: '700'
-  },
-  viewerSubtitle: {
-    color: colors.mutedAlt,
-    fontSize: 15,
-    lineHeight: 22
-  },
-  viewerCard: {
-    gap: 20
-  },
-  viewerRow: {
-    flexDirection: 'row',
-    gap: 16,
-    alignItems: 'center'
-  },
-  viewerIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  viewerCardTitle: {
-    color: colors.primaryText,
-    fontSize: 17,
-    fontWeight: '700'
-  },
-  viewerCardSubtitle: {
-    color: colors.primaryText,
-    opacity: 0.78,
-    fontSize: 14,
-    lineHeight: 20
-  },
-  viewerCopy: {
-    flex: 1,
-    gap: 6
-  }
-<<<<<<< HEAD
 });
-=======
-});
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3

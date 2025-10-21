@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,47 +7,31 @@ import {
   StyleSheet,
   FlatList,
   KeyboardAvoidingView,
-<<<<<<< HEAD
   Platform,
   Image,
   Modal,
-  ActivityIndicator,
 } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { Screen, Toast, colors } from '../components/UI';
 import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
 
 const INITIAL_MESSAGES = [
   { id: '1', type: 'ai', text: "Here's your current design preview." },
   { id: '2', type: 'ai', text: 'What would you like to customize?' },
-=======
-  Platform
-} from 'react-native';
-import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
-import { Screen, Toast, colors } from '../components/UI';
-
-const INITIAL_MESSAGES = [
-  { id: '1', type: 'ai', text: "Here's your current design." },
-  { id: '2', type: 'ai', text: 'What would you like to customize?' }
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
 ];
+
+const DEFAULT_TRANSFORM = { rotation: 0, flipped: false };
 
 export default function CustomizeWithAI({ navigation }) {
   const [text, setText] = useState('');
   const [saved, setSaved] = useState(false);
   const [messages, setMessages] = useState(INITIAL_MESSAGES);
-<<<<<<< HEAD
   const [previewUri, setPreviewUri] = useState(null);
+  const [previewTransform, setPreviewTransform] = useState(DEFAULT_TRANSFORM);
   const [hasAiResult, setHasAiResult] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [draftUri, setDraftUri] = useState(null);
-  const [processingEdit, setProcessingEdit] = useState(false);
+  const [draftTransform, setDraftTransform] = useState(DEFAULT_TRANSFORM);
   const replyTimeoutRef = useRef(null);
-  const originalPreviewRef = useRef(null);
-=======
-  const replyTimeoutRef = useRef(null);
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
 
   useEffect(() => {
     return () => {
@@ -75,16 +59,10 @@ export default function CustomizeWithAI({ navigation }) {
       const aiMessage = {
         id: `${Date.now()}-ai`,
         type: 'ai',
-<<<<<<< HEAD
         text: 'Great! I am applying those changes and will show you the updated concept shortly.',
       };
       setMessages((prev) => [...prev, aiMessage]);
       setHasAiResult(true);
-=======
-        text: 'Your updates are on the way. AestheticAI is processing your request.'
-      };
-      setMessages((prev) => [...prev, aiMessage]);
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
       replyTimeoutRef.current = null;
     }, 800);
   };
@@ -103,6 +81,7 @@ export default function CustomizeWithAI({ navigation }) {
 
     if (!result.canceled && result.assets?.length) {
       setPreviewUri(result.assets[0].uri);
+      setPreviewTransform(DEFAULT_TRANSFORM);
     }
   };
 
@@ -110,46 +89,31 @@ export default function CustomizeWithAI({ navigation }) {
     if (!previewUri) {
       return;
     }
-    originalPreviewRef.current = previewUri;
-    setDraftUri(previewUri);
+    setDraftTransform(previewTransform);
     setEditing(true);
   };
 
-  const applyEdit = async (operations) => {
-    if (!draftUri) {
-      return;
-    }
-    setProcessingEdit(true);
-    try {
-      const result = await ImageManipulator.manipulateAsync(
-        draftUri,
-        operations,
-        { compress: 0.96, format: ImageManipulator.SaveFormat.PNG }
-      );
-      setDraftUri(result.uri);
-    } catch (err) {
-      console.warn('Image edit failed', err?.message);
-    } finally {
-      setProcessingEdit(false);
-    }
+  const rotateDraft = (direction) => {
+    setDraftTransform((prev) => {
+      const nextRotation = (prev.rotation + direction + 360) % 360;
+      return { ...prev, rotation: nextRotation };
+    });
   };
 
-  const handleResetDraft = () => {
-    if (originalPreviewRef.current) {
-      setDraftUri(originalPreviewRef.current);
-    }
+  const flipDraft = () => {
+    setDraftTransform((prev) => ({ ...prev, flipped: !prev.flipped }));
+  };
+
+  const resetDraft = () => {
+    setDraftTransform(DEFAULT_TRANSFORM);
   };
 
   const handleCancelEditing = () => {
-    setDraftUri(null);
     setEditing(false);
   };
 
   const handleSaveEditing = () => {
-    if (draftUri) {
-      setPreviewUri(draftUri);
-    }
-    setDraftUri(null);
+    setPreviewTransform(draftTransform);
     setEditing(false);
   };
 
@@ -157,13 +121,13 @@ export default function CustomizeWithAI({ navigation }) {
     <View
       style={[
         styles.chatBubble,
-        item.type === 'user' ? styles.userBubble : styles.aiBubble
+        item.type === 'user' ? styles.userBubble : styles.aiBubble,
       ]}
     >
       <Text
         style={[
           styles.chatText,
-          item.type === 'user' ? styles.userText : styles.aiText
+          item.type === 'user' ? styles.userText : styles.aiText,
         ]}
       >
         {item.text}
@@ -172,6 +136,13 @@ export default function CustomizeWithAI({ navigation }) {
   );
 
   const canEdit = hasAiResult && !!previewUri;
+
+  const buildTransformStyle = (transform) => ({
+    transform: [
+      { rotate: `${transform.rotation}deg` },
+      { scaleX: transform.flipped ? -1 : 1 },
+    ],
+  });
 
   return (
     <Screen inset={false} style={styles.screen}>
@@ -197,14 +168,16 @@ export default function CustomizeWithAI({ navigation }) {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.imageContainer}>
-<<<<<<< HEAD
             {previewUri ? (
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={canEdit ? handleStartEditing : undefined}
                 style={styles.previewWrapper}
               >
-                <Image source={{ uri: previewUri }} style={styles.previewImage} />
+                <Image
+                  source={{ uri: previewUri }}
+                  style={[styles.previewImage, buildTransformStyle(previewTransform)]}
+                />
                 <View style={[styles.editBadge, !canEdit && styles.editBadgeDisabled]}>
                   <Ionicons name="create-outline" size={16} color={canEdit ? '#0F3E48' : colors.muted} />
                   <Text style={[styles.editBadgeText, !canEdit && styles.editBadgeTextDisabled]}>
@@ -223,11 +196,6 @@ export default function CustomizeWithAI({ navigation }) {
               <Ionicons name="cloud-upload-outline" size={18} color="#0F3E48" />
               <Text style={styles.replaceButtonText}>{previewUri ? 'Replace preview image' : 'Upload preview image'}</Text>
             </TouchableOpacity>
-=======
-            <View style={styles.imagePlaceholder}>
-              <Text style={styles.imageText}>Current Design Preview</Text>
-            </View>
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
           </View>
         }
       />
@@ -277,37 +245,31 @@ export default function CustomizeWithAI({ navigation }) {
               </TouchableOpacity>
             </View>
 
-            {draftUri ? (
-              <Image source={{ uri: draftUri }} style={styles.editImage} resizeMode="contain" />
-            ) : null}
-
-            {processingEdit ? (
-              <View style={styles.editLoading}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={styles.editLoadingText}>Applying adjustment…</Text>
-              </View>
+            {previewUri ? (
+              <Image
+                source={{ uri: previewUri }}
+                style={[styles.editImage, buildTransformStyle(draftTransform)]}
+                resizeMode="contain"
+              />
             ) : null}
 
             <View style={styles.editActionsRow}>
-              <TouchableOpacity style={styles.editAction} onPress={() => applyEdit([{ rotate: -90 }])}>
+              <TouchableOpacity style={styles.editAction} onPress={() => rotateDraft(-90)}>
                 <Ionicons name="refresh-circle" size={22} color="#0F3E48" />
                 <Text style={styles.editActionLabel}>Rotate Left</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.editAction} onPress={() => applyEdit([{ rotate: 90 }])}>
+              <TouchableOpacity style={styles.editAction} onPress={() => rotateDraft(90)}>
                 <Ionicons name="refresh-circle" size={22} color="#0F3E48" style={{ transform: [{ scaleX: -1 }] }} />
                 <Text style={styles.editActionLabel}>Rotate Right</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.editAction}
-                onPress={() => applyEdit([{ flip: ImageManipulator.FlipType.Horizontal }])}
-              >
+              <TouchableOpacity style={styles.editAction} onPress={flipDraft}>
                 <Ionicons name="swap-horizontal" size={22} color="#0F3E48" />
                 <Text style={styles.editActionLabel}>Flip</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.editFooter}>
-              <TouchableOpacity style={styles.resetButton} onPress={handleResetDraft}>
+              <TouchableOpacity style={styles.resetButton} onPress={resetDraft}>
                 <Text style={styles.resetButtonText}>Reset</Text>
               </TouchableOpacity>
               <View style={styles.editFooterActions}>
@@ -329,37 +291,24 @@ export default function CustomizeWithAI({ navigation }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-<<<<<<< HEAD
     backgroundColor: colors.background,
-=======
-    backgroundColor: colors.background
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   heroSection: {
     backgroundColor: '#0F3E48',
     paddingTop: 56,
     paddingBottom: 28,
-<<<<<<< HEAD
     paddingHorizontal: 24,
-=======
-    paddingHorizontal: 24
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   backButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
-<<<<<<< HEAD
     alignItems: 'center',
-=======
-    alignItems: 'center'
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   heroTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#FFFFFF',
-<<<<<<< HEAD
     marginTop: 18,
   },
   heroSubtitle: {
@@ -377,24 +326,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
     gap: 12,
-=======
-    marginTop: 18
-  },
-  listContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 140,
-    paddingTop: 20,
-    gap: 12
-  },
-  imageContainer: {
-    alignItems: 'center',
-    marginBottom: 20
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   imagePlaceholder: {
     width: '100%',
     aspectRatio: 16 / 9,
-<<<<<<< HEAD
     maxWidth: 340,
     borderRadius: 18,
     backgroundColor: '#D9D9D9',
@@ -403,19 +338,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 20,
     gap: 10,
-=======
-    maxWidth: 320,
-    borderRadius: 16,
-    backgroundColor: '#D9D9D9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   imageText: {
     color: '#0F3E48',
     fontWeight: '600',
-<<<<<<< HEAD
     textAlign: 'center',
   },
   imageHint: {
@@ -469,15 +395,10 @@ const styles = StyleSheet.create({
   editBadgeTextDisabled: {
     color: colors.muted,
   },
-=======
-    textAlign: 'center'
-  },
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   chatBubble: {
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 16,
-<<<<<<< HEAD
     maxWidth: '82%',
   },
   aiBubble: {
@@ -487,49 +408,25 @@ const styles = StyleSheet.create({
   userBubble: {
     alignSelf: 'flex-start',
     backgroundColor: '#0F3E48',
-=======
-    maxWidth: '82%'
-  },
-  aiBubble: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#E1E8E8'
-  },
-  userBubble: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#0F3E48'
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   chatText: {
     fontSize: 14,
-    lineHeight: 20
+    lineHeight: 20,
   },
-  aiText: {
-    color: '#0F3E48'
-  },
-  userText: {
-    color: '#FFFFFF'
-  },
-<<<<<<< HEAD
   aiText: {
     color: '#0F3E48',
   },
   userText: {
     color: '#FFFFFF',
   },
-=======
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   secondaryActions: {
     position: 'absolute',
     left: 24,
     right: 24,
     bottom: 118,
     flexDirection: 'row',
-<<<<<<< HEAD
     gap: 12,
     flexWrap: 'wrap',
-=======
-    gap: 12
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   secondaryButton: {
     flex: 1,
@@ -538,7 +435,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingVertical: 10,
     alignItems: 'center',
-<<<<<<< HEAD
     backgroundColor: colors.solid,
   },
   secondaryButtonFull: {
@@ -546,28 +442,17 @@ const styles = StyleSheet.create({
   },
   secondaryButtonDisabled: {
     opacity: 0.4,
-=======
-    backgroundColor: '#FFFFFF'
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   secondaryButtonText: {
     color: '#0F3E48',
     fontWeight: '600',
-<<<<<<< HEAD
     fontSize: 13,
-=======
-    fontSize: 13
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   composer: {
     position: 'absolute',
     left: 20,
     right: 20,
-<<<<<<< HEAD
     bottom: 40,
-=======
-    bottom: 40
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -578,20 +463,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     backgroundColor: colors.solid,
-<<<<<<< HEAD
     gap: 10,
   },
   uploadIcon: {
     marginRight: 4,
-=======
-    gap: 10
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
   input: {
     flex: 1,
     color: '#0F3E48',
     fontSize: 14,
-<<<<<<< HEAD
     paddingVertical: 6,
   },
   editModalOverlay: {
@@ -624,15 +504,6 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 14,
     backgroundColor: colors.surfaceAlt,
-  },
-  editLoading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  editLoadingText: {
-    fontSize: 13,
-    color: colors.muted,
   },
   editActionsRow: {
     flexDirection: 'row',
@@ -694,11 +565,5 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: colors.primaryText,
     fontWeight: '700',
-=======
-    paddingVertical: 6
->>>>>>> cc2b433a93313fe45b4a004dac2a8786ca935cf3
   },
-  uploadIcon: {
-    marginRight: 4
-  }
 });
