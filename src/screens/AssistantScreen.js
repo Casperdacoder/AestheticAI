@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -16,28 +16,48 @@ import { Screen, Toast, colors } from '../components/UI';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
+const INITIAL_MESSAGES = [
+  { id: '1', type: 'ai', text: 'Welcome! Ready to design your space with AestheticAI.' },
+  { id: '2', type: 'ai', text: 'Share room details or upload a photo to begin.' },
+];
+
 export default function AssistantScreen({ navigation }) {
   const [text, setText] = useState('');
   const [saved, setSaved] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [messages, setMessages] = useState([
-    { id: '1', type: 'ai', text: 'Welcome! Ready to design your space with AestheticAI' },
-    { id: '2', type: 'ai', text: 'Please provide your room details to start' },
-  ]);
+  const [messages, setMessages] = useState(INITIAL_MESSAGES);
+  const replyTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (replyTimeoutRef.current) {
+        clearTimeout(replyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const send = () => {
-    if (!text.trim()) return;
-    const userMessage = { id: Date.now().toString(), type: 'user', text: text.trim() };
-    setMessages(prev => [...prev, userMessage]);
+    const trimmed = text.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    const userMessage = { id: Date.now().toString(), type: 'user', text: trimmed };
+    setMessages((prev) => [...prev, userMessage]);
     setText('');
 
-    setTimeout(() => {
+    if (replyTimeoutRef.current) {
+      clearTimeout(replyTimeoutRef.current);
+    }
+
+    replyTimeoutRef.current = setTimeout(() => {
       const aiMessage = {
-        id: (Date.now() + 1).toString(),
+        id: `${Date.now()}-ai`,
         type: 'ai',
-        text: 'Got it! I’ll start analyzing your design preferences.',
+        text: 'Great! I am applying those changes and will show you the updated concept shortly.',
       };
-      setMessages(prev => [...prev, aiMessage]);
+      setMessages((prev) => [...prev, aiMessage]);
+      replyTimeoutRef.current = null;
     }, 800);
   };
 
@@ -60,7 +80,18 @@ export default function AssistantScreen({ navigation }) {
         quality: 1,
       });
     }
-    if (!result.canceled) setSaved(true);
+
+    if (!result.canceled) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}-upload`,
+          type: 'user',
+          text: 'Uploaded a new room reference photo.',
+        },
+      ]);
+      saveDesign();
+    }
   };
 
   const renderItem = ({ item }) => (
@@ -83,52 +114,60 @@ export default function AssistantScreen({ navigation }) {
 
   return (
     <Screen inset={false} style={styles.screen}>
-      <Toast
-        visible={saved}
-        text="Design saved successfully!"
-        onClose={() => setSaved(false)}
-      />
+      <Toast visible={saved} text="Design saved successfully!" onClose={() => setSaved(false)} />
 
-      {/* HERO SECTION */}
       <SafeAreaView style={styles.heroSection}>
         <TouchableOpacity
           onPress={() => navigation.navigate('UserTabs', { screen: 'Home' })}
-          activeOpacity={0.6}
+          activeOpacity={0.7}
           style={styles.backButton}
         >
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.heroTitle}>AI Design Assistant</Text>
-        
+        <Text style={styles.heroTitle}>Design with AI</Text>
+        <Text style={styles.heroSubtitle}>
+          Upload a room photo or describe your vision. I'll craft layout ideas instantly.
+        </Text>
       </SafeAreaView>
 
-      {/* Chat Messages */}
       <FlatList
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 140 }}
+        contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.imagePlaceholder}
+            onPress={() => setModalVisible(true)}
+          >
+            <Ionicons name="image-outline" size={32} color="#0F3E48" />
+            <Text style={styles.imageText}>
+              Tap to upload a room reference or capture a new photo.
+            </Text>
+            <Text style={styles.imageHint}>
+              Visual context helps tailor budget-aware concepts.
+            </Text>
+          </TouchableOpacity>
+        }
       />
 
-      {/* Buttons */}
       <View style={styles.secondaryActions}>
-        <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={saveDesign}
-        >
-          <Text style={styles.secondaryButtonText}>Saved Design</Text>
+        <TouchableOpacity style={styles.secondaryButton} onPress={send}>
+          <Text style={styles.secondaryButtonText}>Apply Changes</Text>
         </TouchableOpacity>
-
+        <TouchableOpacity style={styles.secondaryButton} onPress={saveDesign}>
+          <Text style={styles.secondaryButtonText}>Save Design</Text>
+        </TouchableOpacity>
         <TouchableOpacity
-          style={styles.secondaryButton}
+          style={[styles.secondaryButton, styles.secondaryButtonFull]}
           onPress={() => navigation.navigate('CustomizeAI')}
         >
-          <Text style={styles.secondaryButtonText}>Customize</Text>
+          <Text style={styles.secondaryButtonText}>Open Customizer</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Input Field */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.composer}
@@ -139,8 +178,8 @@ export default function AssistantScreen({ navigation }) {
           </TouchableOpacity>
 
           <TextInput
-            placeholder="Ask AI to design your room..."
-            placeholderTextColor="#7B8C8C"
+            placeholder="Describe your dream layout, style, or constraints..."
+            placeholderTextColor={colors.mutedAlt}
             value={text}
             onChangeText={setText}
             style={styles.input}
@@ -152,7 +191,6 @@ export default function AssistantScreen({ navigation }) {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Upload Modal */}
       <Modal
         transparent
         animationType="fade"
@@ -161,27 +199,18 @@ export default function AssistantScreen({ navigation }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <TouchableOpacity
-              onPress={() => setModalVisible(false)}
-              style={styles.closeButton}
-            >
+            <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeButton}>
               <Ionicons name="close" size={22} color="#0F3E48" />
             </TouchableOpacity>
 
             <Text style={styles.modalTitle}>Upload Room Photo</Text>
 
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => openImagePicker('camera')}
-            >
+            <TouchableOpacity style={styles.modalButton} onPress={() => openImagePicker('camera')}>
               <Ionicons name="camera" size={18} color="#0F3E48" />
               <Text style={styles.modalButtonText}>Take a Photo</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => openImagePicker('gallery')}
-            >
+            <TouchableOpacity style={styles.modalButton} onPress={() => openImagePicker('gallery')}>
               <Ionicons name="image" size={18} color="#0F3E48" />
               <Text style={styles.modalButtonText}>Choose from Gallery</Text>
             </TouchableOpacity>
@@ -195,56 +224,77 @@ export default function AssistantScreen({ navigation }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
   },
-
   heroSection: {
     backgroundColor: '#0F3E48',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 20 : 60,
-    paddingBottom: 30,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 36 : 56,
+    paddingBottom: 28,
     paddingHorizontal: 24,
-    marginBottom: 10, 
-  },
-  heroTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginTop: 20,
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    color: '#E0E0E0',
-    marginTop: 6,
-    marginBottom: 10,
   },
   backButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
+    alignItems: 'center',
   },
-
-  aiBubble: {
-    alignSelf: 'flex-end',
+  heroTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginTop: 18,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: '#E0E0E0',
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  listContent: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 160,
+    gap: 12,
+  },
+  imagePlaceholder: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    borderRadius: 18,
     backgroundColor: '#D9D9D9',
-    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+  },
+  imageText: {
+    color: '#0F3E48',
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  imageHint: {
+    color: colors.muted,
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  chatBubble: {
+    borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    marginVertical: 6,
-    maxWidth: '80%',
+    maxWidth: '82%',
+  },
+  aiBubble: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#E1E8E8',
   },
   userBubble: {
     alignSelf: 'flex-start',
     backgroundColor: '#0F3E48',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginVertical: 6,
-    maxWidth: '80%',
   },
   chatText: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'serif',
   },
   aiText: {
     color: '#0F3E48',
@@ -252,54 +302,58 @@ const styles = StyleSheet.create({
   userText: {
     color: '#FFFFFF',
   },
-
   secondaryActions: {
     position: 'absolute',
-    bottom: 100,
     left: 24,
+    right: 24,
+    bottom: 118,
     flexDirection: 'row',
-    justifyContent: 'flex-start',
+    gap: 12,
+    flexWrap: 'wrap',
   },
   secondaryButton: {
-    width: 100,
-    borderWidth: 1.3,
+    flex: 1,
+    borderWidth: 1.2,
     borderColor: '#0F3E48',
     borderRadius: 20,
-    paddingVertical: 8,
-    marginRight: 10,
+    paddingVertical: 10,
     alignItems: 'center',
+    backgroundColor: colors.solid,
+  },
+  secondaryButtonFull: {
+    flexBasis: '100%',
   },
   secondaryButtonText: {
     color: '#0F3E48',
-    fontWeight: '500',
-    fontSize: 12,
+    fontWeight: '600',
+    fontSize: 13,
   },
-
   composer: {
     position: 'absolute',
     left: 20,
     right: 20,
-    bottom: 50,
+    bottom: 40,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 10,
-    borderWidth: 1.3,
+    borderRadius: 14,
+    borderWidth: 1.2,
     borderColor: '#0F3E48',
     paddingHorizontal: 14,
-    backgroundColor: '#FFFFFF',
+    paddingVertical: 8,
+    backgroundColor: colors.solid,
+    gap: 10,
   },
   uploadButton: {
-    paddingRight: 10,
+    paddingRight: 4,
   },
   input: {
     flex: 1,
     color: '#0F3E48',
     fontSize: 14,
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
-
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.3)',
