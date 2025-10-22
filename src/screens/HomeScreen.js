@@ -61,7 +61,7 @@ export default function HomeScreen({ navigation }) {
   };
 
   const handleEditAccount = () => {
-    navigation.navigate('EditAccoun');
+    navigation.navigate('Account');
   };
 
   const designs = useMemo(() => SAMPLE_DESIGNS.slice(0, 2), []);
@@ -79,7 +79,7 @@ export default function HomeScreen({ navigation }) {
                 <Image source={{ uri: photoURL }} style={styles.avatarImage} />
               ) : (
                 <View style={styles.avatar}>
-                  <Ionicons name="person-circle" size={55} color="#FFFFFF" />
+                  <Ionicons name="person-circle-outline" size={40} color="#FFFFFF" />
                 </View>
               )}
               <TouchableOpacity onPress={handleEditAccount} style={styles.crownWrapper}>
@@ -128,7 +128,7 @@ export default function HomeScreen({ navigation }) {
     {/* Consultation */}
     <TouchableOpacity
       activeOpacity={0.85}
-      onPress={() => navigation.navigate('Consultant')}
+      onPress={() => navigation.navigate('Browse')}
       style={styles.quickCard}
     >
       <View style={[styles.iconCircle, { backgroundColor: '#2f7bb9ff', borderRadius: 42 }]}>
@@ -184,19 +184,34 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingBottom: 48 },
-  hero: {
-    backgroundColor: colors.surfaceMuted,
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
-    paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + 35 : 75,
-    paddingHorizontal: 30,
-    paddingBottom: 50,
+   hero: {
+    backgroundColor: colors.primary,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    paddingTop: 64,
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+    gap: 12
   },
-  heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  identity: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  avatar: { alignItems: 'center', justifyContent: 'center', marginLeft: -18 },
-  avatarImage: { width: 55, height: 55, borderRadius: 28, marginLeft: 8 },
+ heroTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+    identity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   crownWrapper: { marginLeft: -5, marginTop: 2 },
   notificationWrapper: { position: 'relative' },
   badge: {

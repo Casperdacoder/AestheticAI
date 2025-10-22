@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { ImageBackground, StatusBar, View, Text, StyleSheet } from 'react-native';
+import { ImageBackground, StatusBar, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Button, colors } from '../components/UI';
 
 const HERO_IMAGE = require('../../assets/new_background.jpg');
@@ -12,11 +12,18 @@ export default function LandingScreen({ navigation }) {
       <View style={styles.overlay}>
         <View style={styles.textContainer}>
           <Text style={styles.topText}>Welcome to</Text>
+
           <Text style={styles.brandName}>Aesthetic AI</Text>
-          <Text style={styles.tagline}>Your dream space start here</Text>
+
+          {/* 👇 Long-press access moved to tagline */}
+          <TouchableOpacity onLongPress={() => navigation.navigate('AdminLogin')}>
+            <Text style={styles.tagline}>Your dream space start here</Text>
+          </TouchableOpacity>
         </View>
+
         <View style={styles.divider} />
         <Text style={styles.subtitle}>Continue as</Text>
+
         <Button
           title="User"
           onPress={() => navigation.navigate('Login', { role: 'user' })}
@@ -24,11 +31,12 @@ export default function LandingScreen({ navigation }) {
           textStyle={styles.userButtonText}
         />
         <Button
-          title="Designer"
+          title="Consultant"
           onPress={() => navigation.navigate('Login', { role: 'designer' })}
           style={[styles.buttonBase, styles.designerButton]}
           textStyle={styles.designerButtonText}
         />
+
         <Text style={styles.footerNote}>© 2025 Aesthetic AI. All rights reserved.</Text>
       </View>
     </ImageBackground>
@@ -107,7 +115,7 @@ const styles = StyleSheet.create({
   buttonBase: {
     width: '80%',
     paddingVertical: 14,
-    borderRadius: 12, 
+    borderRadius: 12,
     marginVertical: 8,
     elevation: 2,
   },
@@ -115,7 +123,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.solid,
   },
   userButtonText: {
-    color:colors.surface,
+    color: colors.surface,
     fontWeight: '700',
     fontSize: 16,
     letterSpacing: 1,

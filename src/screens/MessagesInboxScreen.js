@@ -292,7 +292,8 @@ const styles = StyleSheet.create({
   welcome: {
     color: colors.primaryText,
     fontSize: 22,
-    fontWeight: '700'
+    fontWeight: '700',
+    fontFamily: 'serif',
   },
   heroSubtitle: {
     color: 'rgba(255,255,255,0.88)',
