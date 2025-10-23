@@ -13,15 +13,12 @@ const fromExtra = extra?.firebase ?? {};
 // 2) Hard-coded fallback (your real Web config)
 //    (OK to keep both—hard-coded values ensure it works even if app.config.js is empty)
 const fromInline = {
-  apiKey: 'AIzaSyBbxHm7YPTc_sX0G0ZX4GrdBoYTPeqcBi0',
-  authDomain: 'aesthetic-ai-c51b3.firebaseapp.com',
-  projectId: 'aesthetic-ai-c51b3',
-  // NOTE: storageBucket must use the appspot.com domain for Firebase Storage SDK
-  storageBucket: 'aesthetic-ai-c51b3.appspot.com',
-  messagingSenderId: '1007106239318',
-  appId: '1:1007106239318:web:a311094bedb2c1d6f984f7',
-  // measurementId is optional for analytics on web; harmless to include
-  measurementId: 'G-2WYK40L0PC',
+  apiKey: "AIzaSyAFdW-wIHdpci42YcngOBP-hhACBKGvW1Y",
+  authDomain: "aestheticai-c3795.firebaseapp.com",
+  projectId: "aestheticai-c3795",
+  storageBucket: "aestheticai-c3795.firebasestorage.app",
+  messagingSenderId: "873025464768",
+  appId: "1:873025464768:android:49bb9dffb2f52f1aafc025"
 };
 
 // 3) Merge (values in fromInline win over fromExtra to avoid missing keys)
