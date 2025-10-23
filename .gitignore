@@ -7,3 +7,6 @@ web-build/
 Thumbs.db
 .vscode/
 .env
+backend/config/vision-key.json
+backend/*.json
+backend/.env
