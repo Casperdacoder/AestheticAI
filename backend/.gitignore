@@ -1,0 +1,4 @@
+backend/config/vision-key.json
+backend/config/*.json
+backend/.env
+!backend/package.json

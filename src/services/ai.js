@@ -1,5 +1,6 @@
 import Constants from "expo-constants";
 import * as FileSystem from "expo-file-system";
+import BASE from "../config/apiBase";
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const HEX_COLOR = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
@@ -930,7 +931,7 @@ const apiBaseUrlRaw =
   extra?.apiBaseUrl ||
   process.env?.EXPO_PUBLIC_API_BASE_URL ||
   process.env?.EXPO_PUBLIC_API_URL ||
-  "";
+  BASE;
 const analyzeRoomEndpoint = apiBaseUrlRaw
   ? `${apiBaseUrlRaw.replace(/\/$/, "")}/api/analyze-room`
   : null;

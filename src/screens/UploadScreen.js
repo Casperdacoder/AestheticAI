@@ -1,7 +1,12 @@
 ﻿import React, { useState } from 'react';
-import { Text, TouchableOpacity, Modal, StyleSheet, View } from 'react-native';
+import { Text, TouchableOpacity, Modal, StyleSheet, View, Alert } from 'react-native';
 import { Screen, colors } from '../components/UI';
 import * as ImagePicker from 'expo-image-picker';
+import {
+  ensureCameraPermission,
+  ensureMediaLibraryPermission,
+  MEDIA_TYPE_IMAGES,
+} from '../utils/imagePickerHelpers';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function UploadScreen({ navigation }) {
@@ -15,17 +20,33 @@ export default function UploadScreen({ navigation }) {
   };
 
   const openCamera = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') return;
-    const res = await ImagePicker.launchCameraAsync({ quality: 0.85 });
-    handleResult(res);
+    const { granted } = await ensureCameraPermission();
+    if (!granted) return;
+    try {
+      const res = await ImagePicker.launchCameraAsync({
+        quality: 0.85,
+        mediaTypes: MEDIA_TYPE_IMAGES,
+      });
+      handleResult(res);
+    } catch (error) {
+      console.warn('ImagePicker camera error', error);
+      Alert.alert('Camera error', error?.message ?? 'Unable to open the camera.');
+    }
   };
 
   const openLibrary = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return;
-    const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.85 });
-    handleResult(res);
+    const { granted } = await ensureMediaLibraryPermission();
+    if (!granted) return;
+    try {
+      const res = await ImagePicker.launchImageLibraryAsync({
+        quality: 0.85,
+        mediaTypes: MEDIA_TYPE_IMAGES,
+      });
+      handleResult(res);
+    } catch (error) {
+      console.warn('ImagePicker library error', error);
+      Alert.alert('Photo picker error', error?.message ?? 'Unable to open your photo library.');
+    }
   };
 
   return (

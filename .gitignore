@@ -9,8 +9,16 @@ Thumbs.db
 .env
 backend/.env
 backend/config/vision-key.json
+<<<<<<< HEAD
 backend/*.json
 src/server/serviceAccountKey.json
 serviceAccountKey.json
 server/serviceAccountKey.json
 *.log
+=======
+backend/.env
+backend/config/vision-key.json
+backend/config/*.json
+backend/.env
+!backend/package.json
+>>>>>>> 76dff65 (chore: add start script for Render; refine .gitignore to allow backend/package.json)
