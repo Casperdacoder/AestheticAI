@@ -1,0 +1,10 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@google-cloud/vision": "^5.3.4",
+    "node-vibrant": "^4.0.3"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}
