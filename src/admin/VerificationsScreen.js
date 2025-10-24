@@ -1,178 +1,154 @@
-// src/admin/screens/VerificationsScreen.js
+// src/screens/VerificationsScreen.js
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from "react-native";
-import { useNavigation } from '@react-navigation/native';
-import { colors } from '../components/UI'; // ensure colors.primary exists
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { auth } from "../services/firebase";
+import { auth, db } from "../services/firebase";
 import { signOut } from "firebase/auth";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { colors } from '../components/UI';
 
 export default function VerificationsScreen() {
   const navigation = useNavigation();
-  const [verifications, setVerifications] = useState([]);
+  const isFocused = useIsFocused();
 
-  // Mock data (for preview, replace with database fetch later)
-  const mockData = [
-    {
-      id: "1",
-      name: "John Doe",
-      email: "john@example.com",
-      education: "BS Computer Science",
-      experience: "3 years",
-      specialization: "Web Development",
-      location: "Manila",
-      schedule: "Mon-Fri, 9AM-5PM",
-      portfolio: "www.johndoe.com/portfolio.pdf",
-      status: "pending",
-    },
-    {
-      id: "2",
-      name: "Jane Smith",
-      email: "jane@example.com",
-      education: "MBA",
-      experience: "5 years",
-      specialization: "Business Consulting",
-      location: "Cebu",
-      schedule: "Tue-Thu, 10AM-4PM",
-      portfolio: "www.janesmith.com/portfolio.pdf",
-      status: "pending",
-    },
-  ];
+  const [verifications, setVerifications] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: replace mockData with database fetch
-    setVerifications(mockData);
-  }, []);
+    const fetchPendingConsultants = async () => {
+      setLoading(true);
+      try {
+        const q = query(
+          collection(db, "consultants"),
+          where("status", "==", "pending")
+        );
+        const snapshot = await getDocs(q);
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setVerifications(data);
+      } catch (error) {
+        console.error("Error fetching consultants:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Logout handler
+    if (isFocused) {
+      fetchPendingConsultants(); // auto-refresh kapag bumalik sa screen
+    }
+  }, [isFocused]);
+
   const handleLogout = () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Logout",
-          style: "destructive",
-          onPress: () => {
-            signOut(auth)
-              .then(() => navigation.replace("AdminLogin"))
-              .catch((error) => Alert.alert("Error", error.message));
-          }
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: () => {
+          signOut(auth)
+            .then(() => navigation.replace("AdminLogin"))
+            .catch((error) => Alert.alert("Error", error.message));
         }
-      ]
-    );
+      }
+    ]);
   };
 
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
-    <ScrollView style={screenStyles.container} contentContainerStyle={{ paddingBottom: 20 }}>
-      
-      {/* Hero Section */}
-      <View style={screenStyles.hero}>
-        <View style={screenStyles.heroText}>
-          <Text style={screenStyles.heroTitle}>Verifications</Text>
-          <Text style={screenStyles.heroSubtitle}>Manage all pending consultant accounts</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f4f4f4' }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+        {/* Hero Section */}
+        <View style={screenStyles.hero}>
+          <View style={screenStyles.heroText}>
+            <Text style={screenStyles.heroTitle}>Verifications</Text>
+            <Text style={screenStyles.heroSubtitle}>Manage pending consultant accounts</Text>
+          </View>
+          <TouchableOpacity style={screenStyles.logoutButton} onPress={handleLogout}>
+            <Ionicons name="log-out" size={28} color="#fff" />
+          </TouchableOpacity>
         </View>
 
-        {/* Logout Button */}
-        <TouchableOpacity style={screenStyles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out" size={28} color="#fff" />
-        </TouchableOpacity>
-      </View>
+        {/* List of pending consultants */}
+        <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+          {verifications.length === 0 ? (
+            <Text style={{ textAlign: "center", color: "#888", marginTop: 40 }}>
+              No pending consultants.
+            </Text>
+          ) : (
+            verifications.map(item => (
+              <View key={item.id} style={screenStyles.card}>
+                {/* Left info */}
+                <View style={screenStyles.cardInfo}>
+                  <Text style={screenStyles.name}>{item.fullName}</Text>
+                  <Text style={screenStyles.infoText}>Email: {item.email}</Text>
+                </View>
 
-      {/* Cards */}
-      <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
-        {verifications.map(item => (
-          <View key={item.id} style={screenStyles.card}>
-            
-            {/* Left Side: Name & Email */}
-            <View style={screenStyles.cardLeft}>
-              <Text style={screenStyles.name}>{item.name}</Text>
-              <Text style={screenStyles.label}>
-                Email: <Text style={screenStyles.value}>{item.email}</Text>
-              </Text>
-            </View>
-
-            {/* Right Side: View All Button */}
-            <TouchableOpacity
-              style={screenStyles.viewButton}
-              onPress={() => navigation.navigate("VerificationDetail", { data: item })}
-              activeOpacity={0.8}
-            >
-              <Text style={screenStyles.viewButtonText}>View All</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
-      </View>
-    </ScrollView>
+                {/* Right button */}
+                <TouchableOpacity
+                  style={screenStyles.viewButton}
+                  onPress={() => navigation.navigate("VerificationDetail", { data: item })}
+                >
+                  <Text style={screenStyles.viewButtonText}>View Details</Text>
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const screenStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f4f4f4',
-  },
-  // Hero Section
   hero: {
     height: 160,
     backgroundColor: colors.primary,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    flexDirection: 'row', // text + logout button in row
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 20,
     paddingTop: 40,
-    paddingHorizontal: 20,
   },
   heroText: { flex: 1 },
   heroTitle: { color: '#fff', fontSize: 25, fontWeight: '900' },
   heroSubtitle: { fontSize: 16, fontWeight: '600', color: '#f0f0f0', marginTop: 6 },
   logoutButton: { marginLeft: 10, padding: 8 },
 
-  // Card
   card: {
-    padding: 16,
-    marginBottom: 16,
-    flexDirection: 'row',
+    flexDirection: 'row', // para left-right layout
     justifyContent: 'space-between',
     alignItems: 'center',
+    padding: 16,
+    marginBottom: 16,
     borderRadius: 12,
     backgroundColor: '#fff',
-    borderColor: 0,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  cardLeft: {
-    flex: 1,            // left side takes remaining space
-    marginRight: 12,
-  },
-  name: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#2C3E50',
-  },
-  label: {
-    fontWeight: '600',
-    marginTop: 4,
-  },
-  value: {
-    fontWeight: '400',
-  },
-  // View All Button
+  cardInfo: { flex: 1, paddingRight: 10 }, // left side info
+
+  name: { fontSize: 16, fontWeight: '700', color: '#2C3E50', marginBottom: 4 },
+  infoText: { fontSize: 14, color: '#2C3E50', marginBottom: 2 },
+
   viewButton: {
     backgroundColor: colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderRadius: 10,
-    alignItems: 'center',
   },
-  viewButtonText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
+  viewButtonText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });

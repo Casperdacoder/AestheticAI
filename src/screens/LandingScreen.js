@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { ImageBackground, StatusBar, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { ImageBackground, StatusBar, View, Text, StyleSheet } from 'react-native';
 import { Button, colors } from '../components/UI';
 
 const HERO_IMAGE = require('../../assets/new_background.jpg');
@@ -10,29 +10,34 @@ export default function LandingScreen({ navigation }) {
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       <View style={styles.overlay}>
+        {/* Header Text */}
         <View style={styles.textContainer}>
           <Text style={styles.topText}>Welcome to</Text>
-
           <Text style={styles.brandName}>Aesthetic AI</Text>
-
-          {/* 👇 Long-press access moved to tagline */}
-          <TouchableOpacity onLongPress={() => navigation.navigate('AdminLogin')}>
-            <Text style={styles.tagline}>Your dream space start here</Text>
-          </TouchableOpacity>
+          <Text
+            style={styles.tagline}
+            onLongPress={() => navigation.navigate('AdminLogin')}
+          >
+            Your dream space starts here
+          </Text>
         </View>
 
         <View style={styles.divider} />
+
         <Text style={styles.subtitle}>Continue as</Text>
 
+        {/* User Button */}
         <Button
           title="User"
           onPress={() => navigation.navigate('Login', { role: 'user' })}
           style={[styles.buttonBase, styles.userButton]}
           textStyle={styles.userButtonText}
         />
+
+        {/* Consultant (Designer) Button */}
         <Button
           title="Consultant"
-          onPress={() => navigation.navigate('Login', { role: 'designer' })}
+          onPress={() => navigation.navigate('Login', { role: 'consultant' })}
           style={[styles.buttonBase, styles.designerButton]}
           textStyle={styles.designerButtonText}
         />
@@ -67,7 +72,6 @@ const styles = StyleSheet.create({
     color: colors.solid,
     fontSize: 15,
     fontWeight: '500',
-    marginBottom: 0,
     textAlign: 'center',
     fontFamily: 'serif',
     letterSpacing: 1,
@@ -79,7 +83,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     textAlign: 'center',
     letterSpacing: 2,
-    marginBottom: 50,
+    marginBottom: 20,
     fontFamily: 'serif',
     textShadowColor: 'rgba(0,0,0,0.6)',
     textShadowOffset: { width: 2, height: 3 },
@@ -91,17 +95,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
     opacity: 0.9,
-    marginBottom: 10,
-    fontFamily: 'serif',
     lineHeight: 22,
     marginTop: 0,
+    fontFamily: 'serif',
   },
   divider: {
     width: 180,
     height: 3,
     backgroundColor: colors.background,
     borderRadius: 20,
-    marginBottom: 30,
+    marginVertical: 30,
   },
   subtitle: {
     color: colors.background,
@@ -115,7 +118,7 @@ const styles = StyleSheet.create({
   buttonBase: {
     width: '80%',
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 12, 
     marginVertical: 8,
     elevation: 2,
   },
@@ -138,7 +141,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
     letterSpacing: 1,
-    borderRadius: 1,
   },
   footerNote: {
     position: 'absolute',

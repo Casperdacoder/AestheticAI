@@ -6,10 +6,13 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from './src/components/UI';
 
+// ------------------------
 // Screens
+// ------------------------
 import LandingScreen from './src/screens/LandingScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
+import RegisterConScreen from './src/screens/RegisterConScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import AdminLogin from './src/admin/Adminlogin';
 
@@ -33,18 +36,26 @@ import PaymentScreen from './src/screens/PaymentScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import SecurityScreen from './src/screens/SecurityScreen';
 import ChatScreen from './src/screens/ChatScreen';
+import VerificationForm from './src/screens/VerificationForm';
 
+// ------------------------
+// Admin Screens
+// ------------------------
 import DashboardScreen from './src/admin/DashboardScreen';
 import AccountsScreen from './src/admin/AccountsScreen';
 import VerificationsScreen from './src/admin/VerificationsScreen';
-import VerificationsDetailsScreen from './src/admin/VerificationsDetailScreen';
 import WithdrawalsScreen from './src/admin/WithdrawalsScreen';
+import VerificationDetailScreen from './src/admin/VerificationDetailScreen';
 
-import AccountUserScreen from './src/screens/AccountUserScreen.js';
-import AccountDesignerScreen from './src/screens/AccountDesignerScreen.js';
+// ------------------------
+// Account Screens
+// ------------------------
+import AccountUserScreen from './src/screens/AccountUserScreen';
+import AccountDesignerScreen from './src/screens/AccountDesignerScreen';
 import BookingScreen from './src/screens/BookingScreen';
 import ConsultationsInboxScreen from './src/screens/ConsultationsInboxScreen';
 
+// ------------------------
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
 
@@ -72,7 +83,6 @@ const ADMIN_TAB_CONFIG = [
   { name: 'Accounts', component: AccountsScreen, icon: 'people' },
   { name: 'Verifications', component: VerificationsScreen, icon: 'checkmark-done-circle' },
   { name: 'Withdrawals', component: WithdrawalsScreen, icon: 'cash' },
-  
 ];
 
 // ------------------------
@@ -136,7 +146,7 @@ function AnimatedTabIcon({ iconName, focused }) {
     >
       <Ionicons
         name={iconName}
-        size={30} // 🔹 Mas malaki
+        size={30}
         color={focused ? colors.primaryText : colors.mutedAlt}
       />
     </Animated.View>
@@ -216,6 +226,9 @@ export default function App() {
         <Stack.Screen name="Landing" component={LandingScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="RegisterCon" component={RegisterConScreen} />
+        <Stack.Screen name="VerificationForm" component={VerificationForm} />
+        <Stack.Screen name="VerificationsScreen" component={VerificationsScreen} />
         <Stack.Screen name="Forgot" component={ForgotPasswordScreen} />
         <Stack.Screen name="AdminLogin" component={AdminLogin} />
 
@@ -224,7 +237,10 @@ export default function App() {
         <Stack.Screen name="DesignerTabs" component={DesignerTabsNavigator} />
         <Stack.Screen name="AdminTabs" component={AdminTabsNavigator} />
 
-        {/* Feature screens */}
+        {/* Admin Feature Screen */}
+        <Stack.Screen name="VerificationDetail" component={VerificationDetailScreen} />
+
+        {/* Other Feature screens */}
         <Stack.Screen name="Upload" component={UploadScreen} />
         <Stack.Screen name="Consultant" component={ConsultantScreen} />
         <Stack.Screen name="Assistant" component={AssistantScreen} />

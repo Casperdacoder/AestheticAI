@@ -2,9 +2,9 @@
 import { View, Text, Switch, Alert, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { Screen, Input, Button, colors } from '../components/UI';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from '../services/firebase';
+import { auth, db } from '../services/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { cacheUserRole } from '../services/userCache';
-import { saveProfile } from '../services/profileStore';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -42,24 +42,34 @@ export default function RegisterScreen({ route, navigation }) {
 
   const register = async () => {
     if (!validate()) return;
+
     try {
+      // 1️⃣ Create Firebase Auth user
       const credential = await createUserWithEmailAndPassword(auth, email.trim(), pass);
       await updateProfile(credential.user, { displayName: name });
 
+      // 2️⃣ Prepare user profile for Firestore
       const profile = {
+        uid: credential.user.uid,
         name,
         email: email.trim(),
-        role,
-        createdAt: new Date().toISOString()
+        role,           // 'user'
+        subscription_type: 'Free',
+        createdAt: serverTimestamp(),
       };
 
-      await saveProfile(credential.user.uid, profile);
+      // 3️⃣ Save to Firestore
+      await setDoc(doc(db, 'users', credential.user.uid), profile);
+
+      // 4️⃣ Cache role locally (for navigation)
       await cacheUserRole(credential.user.uid, role);
 
+      // 5️⃣ Navigate to User dashboard
       navigation.reset({
         index: 0,
-        routes: [{ name: role === 'designer' ? 'DesignerTabs' : 'UserTabs' }]
+        routes: [{ name: 'UserTabs' }],
       });
+
     } catch (error) {
       Alert.alert('Register Error', error.message);
     }
@@ -67,18 +77,15 @@ export default function RegisterScreen({ route, navigation }) {
 
   return (
     <Screen style={styles.screen}>
-     
-
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>Create your account</Text>
-         <Text style={styles.subtitle}>Join us today! Create your account to get started</Text>
+        <Text style={styles.subtitle}>Join us today! Create your account to get started</Text>
 
         <Input
           placeholder="Name"
           value={name}
           onChangeText={setName}
           style={styles.input}
-        
         />
         <Input
           placeholder="Email"
@@ -87,7 +94,6 @@ export default function RegisterScreen({ route, navigation }) {
           value={email}
           onChangeText={setEmail}
           style={styles.input}
-         
         />
         <Input
           placeholder="Password"
@@ -95,7 +101,6 @@ export default function RegisterScreen({ route, navigation }) {
           value={pass}
           onChangeText={setPass}
           style={styles.input}
-         
         />
         <Input
           placeholder="Confirm Password"
@@ -103,7 +108,6 @@ export default function RegisterScreen({ route, navigation }) {
           value={confirm}
           onChangeText={setConfirm}
           style={styles.input}
-        
         />
 
         <View style={styles.agreementRow}>
@@ -113,9 +117,7 @@ export default function RegisterScreen({ route, navigation }) {
             trackColor={{ false: colors.outline, true: colors.primary }}
             thumbColor={agree ? colors.primaryText : '#E5E7EB'}
           />
-          <Text style={styles.agreementText}>
-            I agree to theTerms & Conditions</Text>
-         
+          <Text style={styles.agreementText}>I agree to the Terms & Conditions</Text>
         </View>
 
         <Button title="Register" onPress={register} />
@@ -134,32 +136,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#E9E8E8',
     paddingTop: 50,
     paddingHorizontal: 20,
-   
   },
   scroll: {
     paddingBottom: 40,
   },
   title: {
     color: '#0F3E48',
+        marginStart: 12,
+
     fontSize: 29,
     fontWeight: '900',
     fontFamily: 'serif',
-    marginTop: 70, 
+    marginTop: 70,
     textAlign: 'start',
     marginBottom: 3,
-    marginLeft: 10,
-    marginRight: 10,
   },
   subtitle: {
     color: '#0F3E48',
+    marginStart: 12,
     fontSize: 15,
-     fontFamily: 'serif',
+    fontFamily: 'serif',
     marginBottom: 32,
     opacity: 0.8,
-    marginLeft: 10,
-    marginRight: 10,
   },
- 
   agreementRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -170,14 +169,13 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     flex: 1,
     lineHeight: 20,
-     fontFamily: 'serif',
-
+    fontFamily: 'serif',
   },
   footerLink: {
     marginTop: 24,
   },
   footer: {
-     textAlign: 'center',
+    textAlign: 'center',
     color: '#0F3E48',
     fontWeight: '400',
     fontSize: 15,

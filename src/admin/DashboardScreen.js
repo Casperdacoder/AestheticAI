@@ -1,15 +1,16 @@
 // src/admin/screens/DashboardScreen.js
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, SafeAreaView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
 import { Card, colors } from '../components/UI';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { auth } from "../services/firebase";
+import { auth, db } from "../services/firebase";
 import { signOut } from "firebase/auth";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 export default function DashboardScreen() {
   const navigation = useNavigation();
-
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalUsers: 0,
     pendingVerifications: 0,
@@ -20,22 +21,35 @@ export default function DashboardScreen() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
+        const usersRef = collection(db, "users");
+        const consultantsRef = collection(db, "consultants");
+
+        const [usersSnap, pendingSnap, verifiedSnap] = await Promise.all([
+          getDocs(usersRef).catch(() => ({ size: 0 })),
+          getDocs(query(consultantsRef, where("status", "==", "pending"))),
+          getDocs(query(consultantsRef, where("status", "==", "verified"))),
+        ]);
+
         setStats({
-          totalUsers: 1234,
-          pendingVerifications: 27,
-          withdrawPending: 12,
-          verifiedConsultants: 56,
+          totalUsers: usersSnap.size || 0,
+          pendingVerifications: pendingSnap.size,
+          withdrawPending: 0, // placeholder
+          verifiedConsultants: verifiedSnap.size,
         });
       } catch (err) {
-        console.log('Error fetching stats:', err);
+        console.log("Error fetching stats:", err);
+        Alert.alert("Error", "Failed to fetch stats.");
+      } finally {
+        setLoading(false);
       }
     };
+
     fetchStats();
   }, []);
 
   const cardData = [
     { id: '1', title: 'Total Users', value: stats.totalUsers, icon: 'people', navigate: 'UpdateInformation', bgColor: '#2A9D8F' },
-    { id: '2', title: 'Pending Verifications', value: stats.pendingVerifications, icon: 'alert-circle', navigate: 'UpdateInformation', bgColor: '#E76F51' },
+    { id: '2', title: 'Pending Verifications', value: stats.pendingVerifications, icon: 'alert-circle', navigate: 'VerificationsScreen', bgColor: '#E76F51' },
     { id: '3', title: 'Withdraw Pending', value: stats.withdrawPending, icon: 'cash-outline', navigate: 'UpdateInformation', bgColor: '#F4A261' },
     { id: '4', title: 'Verified Consultants', value: stats.verifiedConsultants, icon: 'checkmark-circle', navigate: 'UpdateInformation', bgColor: '#264653' },
   ];
@@ -59,11 +73,18 @@ export default function DashboardScreen() {
     );
   };
 
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 20 }}>
-
         {/* Hero Section */}
         <View style={styles.hero}>
           <View style={styles.heroText}>
@@ -104,12 +125,7 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-
-  // Hero Section
+  container: { flex: 1, backgroundColor: colors.background },
   hero: {
     height: 160,
     backgroundColor: colors.primary,
@@ -123,28 +139,14 @@ const styles = StyleSheet.create({
     paddingTop: 40,
   },
   heroText: { flex: 1 },
-  heroTitle: {
-    color: '#fff',
-    fontSize: 25,
-    fontWeight: '900',
-  },
-  heroSubtitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#f0f0f0',
-    marginTop: 6,
-  },
+  heroTitle: { color: '#fff', fontSize: 25, fontWeight: '900' },
+  heroSubtitle: { fontSize: 16, fontWeight: '600', color: '#f0f0f0', marginTop: 6 },
   logoutButton: { marginLeft: 10, padding: 8 },
-
-  cardGrid: {
-    flexDirection: 'column',
-    marginHorizontal: 16,
-  },
+  cardGrid: { flexDirection: 'column', marginHorizontal: 16 },
   card: {
     backgroundColor: '#fff',
     paddingVertical: 20,
     paddingHorizontal: 16,
-    borderColor: 0,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOpacity: 0.1,
@@ -153,26 +155,8 @@ const styles = StyleSheet.create({
     elevation: 4,
     marginBottom: 16,
   },
-  cardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1e1d1dff',
-  },
-  cardValue: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#262525ff',
-    marginTop: 4,
-  },
+  cardContent: { flexDirection: 'row', alignItems: 'center' },
+  iconCircle: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: '#1e1d1dff' },
+  cardValue: { fontSize: 22, fontWeight: '900', color: '#262525ff', marginTop: 4 },
 });
