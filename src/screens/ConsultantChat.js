@@ -11,11 +11,17 @@ import {
   Platform,
   Modal,
   StatusBar,
-  SafeAreaView,
+  Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Screen, colors, Toast } from '../components/UI';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import {
+  ensureCameraPermission,
+  ensureMediaLibraryPermission,
+  MEDIA_TYPE_IMAGES,
+} from '../utils/imagePickerHelpers';
 
 export default function ConsultantChatScreen({ navigation, route }) {
   const consultantName = route?.params?.consultantName || 'Consultant';
@@ -41,9 +47,31 @@ export default function ConsultantChatScreen({ navigation, route }) {
     setModalVisible(false);
     let result;
     if (type === 'camera') {
-      result = await ImagePicker.launchCameraAsync({ quality: 1 });
+      const { granted } = await ensureCameraPermission();
+      if (!granted) return;
+      try {
+        result = await ImagePicker.launchCameraAsync({
+          quality: 1,
+          mediaTypes: MEDIA_TYPE_IMAGES,
+        });
+      } catch (error) {
+        console.warn('ImagePicker camera error', error);
+        Alert.alert('Camera error', error?.message ?? 'Unable to open the camera.');
+        return;
+      }
     } else {
-      result = await ImagePicker.launchImageLibraryAsync({ quality: 1 });
+      const { granted } = await ensureMediaLibraryPermission();
+      if (!granted) return;
+      try {
+        result = await ImagePicker.launchImageLibraryAsync({
+          quality: 1,
+          mediaTypes: MEDIA_TYPE_IMAGES,
+        });
+      } catch (error) {
+        console.warn('ImagePicker library error', error);
+        Alert.alert('Photo picker error', error?.message ?? 'Unable to open your photo library.');
+        return;
+      }
     }
     if (!result.canceled) {
       setToast(true);
