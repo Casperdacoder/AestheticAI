@@ -1,166 +1,102 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator, StatusBar } from 'react-native';
-import { Screen, colors, Toast } from '../components/UI';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  FlatList,
+  StatusBar,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { auth } from '../services/firebase';
-import { getCachedUserRole } from '../services/userCache';
-import { listenToUserChats } from '../services/chat';
 
-export default function MessagesInboxScreen({ navigation }) {
-  const [currentUserId, setCurrentUserId] = useState(auth.currentUser?.uid || null);
-  const [isDesigner, setIsDesigner] = useState(false);
-  const [roleChecked, setRoleChecked] = useState(false);
-  const [toast, setToast] = useState(null);
-  const [chats, setChats] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [notifications] = useState([]);
+const colors = {
+  background: '#F8F9FA',
+  primary: '#0E5258',
+  primaryText: '#FFFFFF',
+  surface: '#FFFFFF',
+  outline: '#E0E0E0',
+  subtleText: '#555555',
+  mutedAlt: '#999999',
+};
 
-  useEffect(() => {
-    if (typeof auth.onAuthStateChanged === 'function') {
-      const unsubscribe = auth.onAuthStateChanged((user) => {
-        setCurrentUserId(user?.uid || null);
-      });
-      return unsubscribe;
-    }
-    return undefined;
-  }, []);
+export default function MessagesInboxScreenMock() {
+  const [chats] = useState([
+    {
+      id: '1',
+      name: 'Alex Rivera',
+      lastMessage: 'Hey! How’s the project going?',
+      time: '2h ago',
+    },
+    {
+      id: '2',
+      name: 'Jamie Cruz',
+      lastMessage: 'Sure, let’s schedule our next meeting.',
+      time: 'Yesterday',
+    },
+    {
+      id: '3',
+      name: 'Taylor Lee',
+      lastMessage: 'Awesome work on the last task!',
+      time: 'Oct 22',
+    },
+  ]);
 
-  useEffect(() => {
-    let isMounted = true;
-    const resolveRole = async () => {
-      try {
-        if (!currentUserId) {
-          if (isMounted) {
-            setIsDesigner(false);
-            setRoleChecked(true);
-          }
-          return;
-        }
-        const cachedRole = await getCachedUserRole(currentUserId);
-        if (isMounted) {
-          setIsDesigner((cachedRole || 'user') === 'designer');
-          setRoleChecked(true);
-        }
-      } catch (error) {
-        console.warn('Failed to resolve user role', error);
-        if (isMounted) {
-          setIsDesigner(false);
-          setRoleChecked(true);
-        }
-      }
-    };
-    resolveRole();
-    return () => {
-      isMounted = false;
-    };
-  }, [currentUserId]);
-
-  useEffect(() => {
-    if (!currentUserId) {
-      setChats([]);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    const unsubscribe = listenToUserChats(
-      currentUserId,
-      (items) => {
-        setChats(items);
-        setLoading(false);
-      },
-      (error) => {
-        console.warn('Failed to subscribe to chats', error);
-        setToast({ message: 'Unable to load your conversations right now.', variant: 'danger' });
-        setTimeout(() => setToast(null), 2400);
-        setLoading(false);
-      }
-    );
-    return unsubscribe;
-  }, [currentUserId]);
+  const displayName = 'Noelyn';
 
   const openChat = (chat) => {
-    if (!chat?.id) {
-      return;
-    }
-    navigation.navigate('Chat', {
-      chatId: chat.id,
-      consultationId: chat.consultationId || null,
-      participantName: getPeerName(chat, currentUserId)
-    });
+    console.log(`Opening chat with ${chat.name}`);
   };
 
-  const renderChatItem = ({ item }) => {
-    const chatName = getPeerName(item, currentUserId);
-    const preview = item.lastMessage || 'Tap to start the conversation.';
-    const timestampLabel = formatTimestamp(item.lastMessageAt || item.updatedAt);
-    return (
-      <TouchableOpacity
-        style={styles.messageCard}
-        activeOpacity={0.85}
-        onPress={() => openChat(item)}
-      >
-        <View style={styles.leadingIcon}>
-          <Ionicons name="chatbubbles-outline" size={24} color={colors.primary} />
-        </View>
-        <View style={styles.chatBody}>
-          <Text style={styles.messageName} numberOfLines={1}>{chatName}</Text>
-          <Text style={styles.messagePreview} numberOfLines={1}>{preview}</Text>
-          <Text style={styles.messageTime}>{timestampLabel}</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={colors.subtleText} />
-      </TouchableOpacity>
-    );
-  };
-
-  const listEmptyComponent = !loading ? (
-    <Text style={styles.emptyState}>
-      {roleChecked
-        ? 'No conversations yet. Once a consultation is accepted you can chat here.'
-        : 'Checking your messages...'}
-    </Text>
-  ) : null;
-
-  const displayName = auth.currentUser?.displayName || (isDesigner ? 'Designer' : 'there');
-  const handleNotificationsPress = () => {
-    setToast({ message: 'Notifications opened.', variant: 'info' });
-    setTimeout(() => setToast(null), 1800);
-  };
+  const renderChatItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.messageCard}
+      activeOpacity={0.85}
+      onPress={() => openChat(item)}
+    >
+      <View style={styles.leadingIcon}>
+        <Ionicons name="chatbubbles-outline" size={24} color={colors.primary} />
+      </View>
+      <View style={styles.chatBody}>
+        <Text style={styles.messageName} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={styles.messagePreview} numberOfLines={1}>
+          {item.lastMessage}
+        </Text>
+        <Text style={styles.messageTime}>{item.time}</Text>
+      </View>
+      <Ionicons
+        name="chevron-forward"
+        size={18}
+        color={colors.subtleText}
+      />
+    </TouchableOpacity>
+  );
 
   return (
-    <Screen inset={false} style={styles.screen}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.surfaceMuted} />
-      {toast ? (
-        <Toast visible text={toast.message} onClose={() => setToast(null)} variant={toast.variant} />
-      ) : null}
+    <View style={styles.screen}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
       {/* Hero Section */}
       <View style={styles.hero}>
         <View style={styles.heroTop}>
-          <View style={styles.identity}>
-            <View style={styles.avatar}>
-              <Ionicons
-                name={isDesigner ? 'color-palette-outline' : 'person-circle-outline'}
-                size={36}
-                color={colors.primaryText}
-              />
-            </View>
+          <View style={styles.avatar}>
+            <Ionicons name="person-circle-outline" size={36} color="#fff" />
           </View>
-
-          <TouchableOpacity onPress={handleNotificationsPress} style={styles.notificationWrapper}>
-            <Ionicons name="notifications-outline" size={42} color={colors.primaryText} />
-            {notifications.length > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{notifications.length}</Text>
-              </View>
-            )}
+          <TouchableOpacity style={styles.notificationWrapper}>
+            <Ionicons
+              name="notifications-outline"
+              size={42}
+              color={colors.primaryText}
+            />
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>3</Text>
+            </View>
           </TouchableOpacity>
         </View>
         <Text style={styles.welcome}>Welcome {displayName}!</Text>
         <Text style={styles.heroSubtitle}>
-          {isDesigner
-            ? 'Stay connected with your clients in real time.'
-            : 'Chat with your consultant the moment they accept.'}
+          Chat with your consultant or designer anytime.
         </Text>
       </View>
 
@@ -168,81 +104,23 @@ export default function MessagesInboxScreen({ navigation }) {
       <View style={styles.content}>
         <View style={styles.headingRow}>
           <Text style={styles.heading}>Conversations</Text>
-          {loading ? <ActivityIndicator size="small" color={colors.primaryText} /> : null}
         </View>
-        {!currentUserId && !loading ? (
-          <Text style={styles.emptyState}>Sign in to start messaging.</Text>
-        ) : (
-          <FlatList
-            data={chats}
-            keyExtractor={(item) => item.id}
-            renderItem={renderChatItem}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
-            ListEmptyComponent={listEmptyComponent}
-            contentContainerStyle={chats.length === 0 ? styles.emptyContainer : null}
-            style={styles.chatList}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
+        <FlatList
+          data={chats}
+          keyExtractor={(item) => item.id}
+          renderItem={renderChatItem}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          showsVerticalScrollIndicator={false}
+        />
       </View>
-    </Screen>
+    </View>
   );
-}
-
-function formatTimestamp(ms) {
-  if (!ms) {
-    return 'Just now';
-  }
-
-  const date = new Date(ms);
-  if (Number.isNaN(date.getTime())) {
-    return 'Just now';
-  }
-
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-
-  const minute = 60 * 1000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-
-  if (diff < minute) {
-    return 'Just now';
-  }
-  if (diff < hour) {
-    const minutes = Math.floor(diff / minute);
-    return `${minutes} min${minutes === 1 ? '' : 's'} ago`;
-  }
-  if (diff < day) {
-    return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-  }
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
-function getPeerName(chat, currentUserId) {
-  if (!chat?.participantMetadata) {
-    return 'Conversation';
-  }
-
-  const entries = Object.entries(chat.participantMetadata);
-  for (const [participantId, metadata] of entries) {
-    if (participantId !== currentUserId && metadata?.name) {
-      return metadata.name;
-    }
-  }
-
-  const fallback = entries.find(([participantId]) => participantId !== currentUserId);
-  if (fallback && fallback[1]) {
-    return fallback[1].name || 'Conversation';
-  }
-
-  return 'Conversation';
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.background
+    backgroundColor: colors.background,
   },
   hero: {
     backgroundColor: colors.primary,
@@ -251,18 +129,13 @@ const styles = StyleSheet.create({
     paddingTop: 64,
     paddingHorizontal: 24,
     paddingBottom: 28,
-    gap: 12
+    gap: 12,
   },
   heroTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
-  },
-  identity: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
   },
   avatar: {
     width: 56,
@@ -298,7 +171,7 @@ const styles = StyleSheet.create({
   heroSubtitle: {
     color: 'rgba(255,255,255,0.88)',
     fontSize: 13,
-    lineHeight: 18
+    lineHeight: 18,
   },
   content: {
     flex: 1,
@@ -308,7 +181,7 @@ const styles = StyleSheet.create({
   headingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
   },
   heading: {
     color: colors.subtleText,
@@ -317,7 +190,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   separator: {
-    height: 12
+    height: 12,
   },
   messageCard: {
     flexDirection: 'row',
@@ -327,7 +200,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: colors.outline,
-    gap: 16
+    gap: 16,
   },
   leadingIcon: {
     width: 44,
@@ -335,23 +208,11 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: 'rgba(14,82,88,0.12)',
     alignItems: 'center',
-    justifyContent: 'center'
-  },
-  messageIcon: {
-    marginRight: 12,
-  },
-  messageTextSection: {
-    flex: 1,
     justifyContent: 'center',
-  },
-  messageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   chatBody: {
     flex: 1,
-    gap: 4
+    gap: 4,
   },
   messageName: {
     color: '#000',
@@ -360,23 +221,10 @@ const styles = StyleSheet.create({
   },
   messagePreview: {
     color: colors.subtleText,
-    fontSize: 13
+    fontSize: 13,
   },
   messageTime: {
     color: colors.mutedAlt,
-    fontSize: 12
+    fontSize: 12,
   },
-  emptyState: {
-    color: colors.mutedAlt,
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: 40
-  },
-  emptyContainer: {
-    flexGrow: 1,
-    justifyContent: 'center'
-  },
-  chatList: {
-    flex: 1
-  }
 });

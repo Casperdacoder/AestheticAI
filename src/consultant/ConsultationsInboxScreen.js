@@ -1,29 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Image } from 'react-native';
-import { colors } from '../components/UI';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  TouchableOpacity, 
+  StatusBar, 
+  Image 
+} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { colors } from '../components/UI';
 import { auth } from '../services/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
-export default function ConsultationsInboxScreen({ navigation }) {
-  const [conversations, setConversations] = useState([]);
+export default function MessagesInboxScreen({ navigation }) {
+  const [messages, setMessages] = useState([]);
   const [userName, setUserName] = useState('Loading...');
   const [photoURL, setPhotoURL] = useState(null);
 
   useEffect(() => {
-    // 🔹 Mock conversations data
-    setConversations([
-      { id: 1, user: 'John Doe', lastMessage: 'Hi, I need help with my design', time: '10:00 AM', unread: 2 },
-      { id: 2, user: 'Mary Smith', lastMessage: 'Can we reschedule?', time: 'Yesterday', unread: 0 },
-      { id: 3, user: 'Alex Johnson', lastMessage: 'Thank you for your advice!', time: '2 days ago', unread: 1 },
+    // 🔹 Mock data for sample messages
+    setMessages([
+      { id: 1, user: 'Client A', lastMessage: 'Can you send me the latest draft?', time: '5:45 PM', unread: 1 },
+      { id: 2, user: 'Designer B', lastMessage: 'Let’s discuss the revisions tomorrow.', time: 'Yesterday', unread: 0 },
+      { id: 3, user: 'Consultant C', lastMessage: 'Thanks for your feedback!', time: '2 days ago', unread: 3 },
     ]);
 
+    // 🔹 Mock authentication listener
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        setUserName(user.displayName || 'Designer');
+        setUserName(user.displayName || 'User');
         setPhotoURL(user.photoURL || null);
+      } else {
+        setUserName('Guest');
+        setPhotoURL(null);
       }
     });
+
     return () => unsubscribe();
   }, []);
 
@@ -46,30 +59,30 @@ export default function ConsultationsInboxScreen({ navigation }) {
         </View>
       </View>
 
-      {/* 🔹 Title below Hero */}
-      <Text style={styles.sectionTitle}>Your Conversations</Text>
+      {/* 🔹 Title */}
+      <Text style={styles.sectionTitle}>Messages</Text>
 
-      {/* 🔹 Conversations List */}
-      {conversations.map((conv) => (
+      {/* 🔹 Message List */}
+      {messages.map((msg) => (
         <TouchableOpacity 
-          key={conv.id} 
+          key={msg.id} 
           style={styles.card}
-          onPress={() => navigation.navigate('ChatScreen', { userId: conv.id })}
+          onPress={() => navigation.navigate('ChatScreen', { chatId: msg.id })}
         >
           <View style={styles.leadingIcon}>
-            <Ionicons name="person-circle-outline" size={44} color={colors.primary} />
+            <Ionicons name="chatbubbles-outline" size={44} color={colors.primary} />
           </View>
 
           <View style={styles.chatBody}>
             <View style={styles.cardHeader}>
-              <Text style={styles.userName}>{conv.user}</Text>
-              <Text style={styles.time}>{conv.time}</Text>
+              <Text style={styles.userName}>{msg.user}</Text>
+              <Text style={styles.time}>{msg.time}</Text>
             </View>
             <View style={styles.cardFooter}>
-              <Text style={styles.lastMessage} numberOfLines={1}>{conv.lastMessage}</Text>
-              {conv.unread > 0 && (
+              <Text style={styles.lastMessage} numberOfLines={1}>{msg.lastMessage}</Text>
+              {msg.unread > 0 && (
                 <View style={styles.unreadBadge}>
-                  <Text style={styles.unreadText}>{conv.unread}</Text>
+                  <Text style={styles.unreadText}>{msg.unread}</Text>
                 </View>
               )}
             </View>
@@ -83,7 +96,10 @@ export default function ConsultationsInboxScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
- 
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
 
   /* Hero Section */
   hero: {
@@ -95,13 +111,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 15,
-    marginBottom: 20
+    marginBottom: 20,
   },
-  
-   welcomeText: { fontSize: 14, color: '#E0E0E0' , marginTop: 50,},
-  userNameText: { fontSize: 20, fontWeight: '700', color: '#fff', marginTop: 2 },
-
-  avatarImage: { width: 60, height: 60, borderRadius: 30,marginTop: 50,},
+  welcomeText: {
+    fontSize: 14,
+    color: '#E0E0E0',
+    marginTop: 50,
+  },
+  userNameText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+    marginTop: 2,
+  },
+  avatarImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginTop: 50,
+  },
   avatar: {
     width: 62,
     height: 62,
@@ -111,14 +139,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   /* Section Title */
   sectionTitle: {
-   fontSize: 18, fontWeight: '700', marginVertical: 10, color: colors.primary, fontFamily: 'serif', marginStart: 20, },
-
-  card: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginVertical: 10,
+    color: colors.primary,
+    fontFamily: 'serif',
+    marginStart: 20,
   },
 
-  /* Conversation Card */
+  /* Message Cards */
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -129,7 +161,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.outline,
     marginBottom: 12,
-    gap: 16
+    gap: 16,
   },
   leadingIcon: {
     width: 44,
@@ -141,23 +173,43 @@ const styles = StyleSheet.create({
   },
   chatBody: {
     flex: 1,
-    gap: 4
+    gap: 4,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
   },
-  userName: { color: '#000', fontWeight: '700', fontSize: 15 },
-  time: { color: colors.subtleText, fontSize: 12 },
-
+  userName: {
+    color: '#000',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  time: {
+    color: colors.subtleText,
+    fontSize: 12,
+  },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 4
+    marginTop: 4,
   },
-  lastMessage: { color: colors.subtleText, fontSize: 13, flex: 1 },
-  unreadBadge: { backgroundColor: '#E63946', borderRadius: 12, paddingHorizontal: 6, paddingVertical: 2, marginLeft: 6 },
-  unreadText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  lastMessage: {
+    color: colors.subtleText,
+    fontSize: 13,
+    flex: 1,
+  },
+  unreadBadge: {
+    backgroundColor: '#E63946',
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 6,
+  },
+  unreadText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
 });

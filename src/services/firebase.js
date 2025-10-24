@@ -11,12 +11,12 @@ const extra = Constants?.expoConfig?.extra ?? Constants?.manifest?.extra ?? {};
 const fromExtra = extra?.firebase ?? {};
 
 // 2) Hard-coded fallback (your real Web config)
-//    (OK to keep both—hard-coded values ensure it works even if app.config.js is empty)
+//    (OK to keep both—hard-coded values ensursse it works even if app.config.js is empty)
 const fromInline = {
   apiKey: "AIzaSyAFdW-wIHdpci42YcngOBP-hhACBKGvW1Y",
   authDomain: "aestheticai-c3795.firebaseapp.com",
   projectId: "aestheticai-c3795",
-  storageBucket: "aestheticai-c3795.firebasestorage.app",
+storageBucket: "aestheticai-c3795.appspot.com",
   messagingSenderId: "873025464768",
   appId: "1:873025464768:android:49bb9dffb2f52f1aafc025"
 };
