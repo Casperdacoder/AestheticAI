@@ -20,6 +20,19 @@ export default function VerificationsScreen() {
     const fetchPendingConsultants = async () => {
       setLoading(true);
       try {
+        // Get current user's token claims
+        const tokenResult = await auth.currentUser.getIdTokenResult();
+        console.log("Admin claims:", tokenResult.claims);
+
+        // Only allow admin users
+        if (!tokenResult.claims.admin) {
+          Alert.alert("Access Denied", "You do not have admin privileges.");
+          setVerifications([]);
+          setLoading(false);
+          return;
+        }
+
+        // Fetch pending consultants from Firestore
         const q = query(
           collection(db, "consultants"),
           where("status", "==", "pending")
@@ -29,13 +42,14 @@ export default function VerificationsScreen() {
         setVerifications(data);
       } catch (error) {
         console.error("Error fetching consultants:", error);
+        Alert.alert("Error", "Failed to fetch pending consultants. Check console for details.");
       } finally {
         setLoading(false);
       }
     };
 
     if (isFocused) {
-      fetchPendingConsultants(); // auto-refresh kapag bumalik sa screen
+      fetchPendingConsultants();
     }
   }, [isFocused]);
 
@@ -65,7 +79,7 @@ export default function VerificationsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f4f4f4' }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
-        {/* Hero Section */}
+        {/* Hero section */}
         <View style={screenStyles.hero}>
           <View style={screenStyles.heroText}>
             <Text style={screenStyles.heroTitle}>Verifications</Text>
@@ -76,7 +90,7 @@ export default function VerificationsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* List of pending consultants */}
+        {/* Pending consultants list */}
         <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
           {verifications.length === 0 ? (
             <Text style={{ textAlign: "center", color: "#888", marginTop: 40 }}>
@@ -85,13 +99,11 @@ export default function VerificationsScreen() {
           ) : (
             verifications.map(item => (
               <View key={item.id} style={screenStyles.card}>
-                {/* Left info */}
                 <View style={screenStyles.cardInfo}>
                   <Text style={screenStyles.name}>{item.fullName}</Text>
                   <Text style={screenStyles.infoText}>Email: {item.email}</Text>
+                  <Text style={screenStyles.infoText}>Status: {item.status}</Text>
                 </View>
-
-                {/* Right button */}
                 <TouchableOpacity
                   style={screenStyles.viewButton}
                   onPress={() => navigation.navigate("VerificationDetail", { data: item })}
@@ -126,7 +138,7 @@ const screenStyles = StyleSheet.create({
   logoutButton: { marginLeft: 10, padding: 8 },
 
   card: {
-    flexDirection: 'row', // para left-right layout
+    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
@@ -139,7 +151,7 @@ const screenStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  cardInfo: { flex: 1, paddingRight: 10 }, // left side info
+  cardInfo: { flex: 1, paddingRight: 10 },
 
   name: { fontSize: 16, fontWeight: '700', color: '#2C3E50', marginBottom: 4 },
   infoText: { fontSize: 14, color: '#2C3E50', marginBottom: 2 },

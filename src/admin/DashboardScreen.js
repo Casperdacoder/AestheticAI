@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { auth, db } from "../services/firebase";
 import { signOut } from "firebase/auth";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 
 export default function DashboardScreen() {
   const navigation = useNavigation();
@@ -19,32 +19,36 @@ export default function DashboardScreen() {
   });
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const usersRef = collection(db, "users");
-        const consultantsRef = collection(db, "consultants");
+    const usersRef = collection(db, "users");
+    const consultantsRef = collection(db, "consultants");
 
-        const [usersSnap, pendingSnap, verifiedSnap] = await Promise.all([
-          getDocs(usersRef).catch(() => ({ size: 0 })),
-          getDocs(query(consultantsRef, where("status", "==", "pending"))),
-          getDocs(query(consultantsRef, where("status", "==", "verified"))),
-        ]);
+    // Listen to total users
+    const unsubscribeUsers = onSnapshot(usersRef, (snapshot) => {
+      setStats(prev => ({ ...prev, totalUsers: snapshot.size }));
+    });
 
-        setStats({
-          totalUsers: usersSnap.size || 0,
-          pendingVerifications: pendingSnap.size,
-          withdrawPending: 0, // placeholder
-          verifiedConsultants: verifiedSnap.size,
-        });
-      } catch (err) {
-        console.log("Error fetching stats:", err);
-        Alert.alert("Error", "Failed to fetch stats.");
-      } finally {
-        setLoading(false);
-      }
+    // Listen to pending verifications
+    const qPending = query(consultantsRef, where("status", "==", "pending"));
+    const unsubscribePending = onSnapshot(qPending, (snapshot) => {
+      setStats(prev => ({ ...prev, pendingVerifications: snapshot.size }));
+    });
+
+    // Listen to verified consultants
+    const qVerified = query(consultantsRef, where("status", "==", "verified"));
+    const unsubscribeVerified = onSnapshot(qVerified, (snapshot) => {
+      setStats(prev => ({ ...prev, verifiedConsultants: snapshot.size }));
+    });
+
+    // Placeholder for withdrawPending (add your logic if needed)
+    setStats(prev => ({ ...prev, withdrawPending: 0 }));
+
+    setLoading(false);
+
+    return () => {
+      unsubscribeUsers();
+      unsubscribePending();
+      unsubscribeVerified();
     };
-
-    fetchStats();
   }, []);
 
   const cardData = [
