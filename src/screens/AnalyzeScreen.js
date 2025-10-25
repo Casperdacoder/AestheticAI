@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import BASE from "../config/apiBase";
+import { generateLayout } from "../services/api";
 import {
   ensureMediaLibraryPermission,
   MEDIA_TYPE_IMAGES,
@@ -21,7 +22,7 @@ export default function AnalyzeScreen() {
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState(null);
-  const [suggestions, setSuggestions] = useState(null);
+  const [layoutResult, setLayoutResult] = useState(null);
 
   const [layout, setLayout] = useState("open");
   const [style, setStyle] = useState("minimalist");
@@ -41,7 +42,7 @@ export default function AnalyzeScreen() {
       if (!result.canceled && result.assets?.length) {
         setImage(result.assets[0].uri);
         setAnalysis(null);
-        setSuggestions(null);
+        setLayoutResult(null);
       }
     } catch (error) {
       console.warn("ImagePicker library error", error);
@@ -75,6 +76,7 @@ export default function AnalyzeScreen() {
       }
 
       setAnalysis(json);
+      setLayoutResult(null);
     } catch (error) {
       Alert.alert("Analyze error", error.message);
     } finally {
@@ -90,22 +92,25 @@ export default function AnalyzeScreen() {
 
     try {
       setLoading(true);
-      const payload = {
-        objects: analysis.objects,
-        colors: analysis.colors,
-        preferences: { layout, style, palette },
-      };
-      const res = await fetch(`${BASE}/api/suggest`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.error || "Suggest failed");
+      const promptParts = [
+        `User prefers a ${layout || "flexible"} layout in a ${style || "versatile"} style.`,
+        `Target colour palette: ${palette || "neutral tones"}.`,
+      ];
+      if (analysis?.objects?.length) {
+        promptParts.push(`Detected furniture or items: ${analysis.objects.map((o) => o.name).join(", ")}.`);
+      }
+      if (analysis?.colors?.length) {
+        promptParts.push(`Dominant colours in the photo: ${analysis.colors.join(", ")}.`);
       }
 
-      setSuggestions(json.suggestions);
+      const result = await generateLayout({
+        imageUri: image,
+        prompt: promptParts.join(" "),
+        roomType: null,
+        measurements: null,
+      });
+
+      setLayoutResult(result);
     } catch (error) {
       Alert.alert("Suggest error", error.message);
     } finally {
@@ -131,7 +136,7 @@ export default function AnalyzeScreen() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 80, backgroundColor: "#fff" }}>
-      <Text style={{ fontSize: 22, fontWeight: "700", marginBottom: 12 }}>AestheticAI — Analyze Room</Text>
+      <Text style={{ fontSize: 22, fontWeight: "700", marginBottom: 12 }}>AestheticAI â€” Analyze Room</Text>
 
       <TouchableOpacity
         onPress={pickImage}
@@ -243,7 +248,7 @@ export default function AnalyzeScreen() {
           {analysis.objects?.length ? (
             analysis.objects.map((o, idx) => (
               <Text key={idx} style={{ color: "#111827" }}>
-                • {o.name} ({Math.round(o.confidence * 100)}%)
+                - {o.name} ({Math.round(o.confidence * 100)}%)
               </Text>
             ))
           ) : (
@@ -261,14 +266,128 @@ export default function AnalyzeScreen() {
         </View>
       )}
 
-      {suggestions && (
+      {layoutResult && (
         <View
-          style={{ backgroundColor: "#eef2ff", borderColor: "#c7d2fe", borderWidth: 1, borderRadius: 12, padding: 12 }}
+          style={{
+            backgroundColor: "#eef2ff",
+            borderColor: "#c7d2fe",
+            borderWidth: 1,
+            borderRadius: 12,
+            padding: 12,
+            gap: 10
+          }}
         >
-          <Text style={{ fontSize: 16, fontWeight: "700", marginBottom: 6 }}>AI Suggestions</Text>
-          <Text style={{ color: "#111827", lineHeight: 20 }}>{suggestions}</Text>
+          <Text style={{ fontSize: 16, fontWeight: "700" }}>AI Suggestions</Text>
+
+          {layoutResult.caption ? (
+            <Text style={{ color: "#1f2937" }}>Vision summary: {layoutResult.caption}</Text>
+          ) : null}
+
+          {layoutResult.warning ? (
+            <Text style={{ color: "#b45309" }}>{layoutResult.warning}</Text>
+          ) : null}
+
+          {layoutResult.model ? (
+            <Text style={{ color: "#4b5563", marginTop: 4, fontSize: 12 }}>
+              Models: {layoutResult.model.image} · {layoutResult.model.text}
+            </Text>
+          ) : null}
+
+          {layoutResult.plan ? (
+            <View style={{ marginTop: 12 }}>
+              <View>
+                <Text style={{ fontWeight: "600", color: "#111827", marginBottom: 4 }}>Style</Text>
+                <Text style={{ color: "#111827" }}>{layoutResult.plan.styleName}</Text>
+                <Text style={{ color: "#4b5563", marginTop: 4 }}>{layoutResult.plan.styleSummary}</Text>
+              </View>
+
+              {Array.isArray(layoutResult.plan.colorPalette) && layoutResult.plan.colorPalette.length ? (
+                <View style={{ marginTop: 12 }}>
+                  <Text style={{ fontWeight: "600", color: "#111827", marginBottom: 6 }}>Colour Palette</Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                    {layoutResult.plan.colorPalette.map((hex, index) => (
+                      <View
+                        key={`${hex}-${index}`}
+                        style={{ alignItems: "center", width: 64, marginRight: 12, marginBottom: 12 }}
+                      >
+                        <View
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 22,
+                            backgroundColor: hex,
+                            borderWidth: 1,
+                            borderColor: "#d1d5db"
+                          }}
+                        />
+                        <Text style={{ fontSize: 12, marginTop: 4, color: "#374151" }}>{hex}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+
+              {Array.isArray(layoutResult.plan.layoutIdeas) && layoutResult.plan.layoutIdeas.length ? (
+                <View style={{ marginTop: 12 }}>
+                  <Text style={{ fontWeight: "600", color: "#111827", marginBottom: 6 }}>Layout Ideas</Text>
+                  {layoutResult.plan.layoutIdeas.map((idea, index) => (
+                    <Text key={index} style={{ color: "#1f2937", marginBottom: 4 }}>
+                      - {idea.room ? `${idea.room}: ` : ""}{idea.summary}
+                    </Text>
+                  ))}
+                </View>
+              ) : null}
+
+              {Array.isArray(layoutResult.plan.decorTips) && layoutResult.plan.decorTips.length ? (
+                <View style={{ marginTop: 12 }}>
+                  <Text style={{ fontWeight: "600", color: "#111827", marginBottom: 6 }}>Decor Tips</Text>
+                  {layoutResult.plan.decorTips.map((tip, index) => (
+                    <Text key={index} style={{ color: "#1f2937", marginBottom: 4 }}>
+                      - {tip}
+                    </Text>
+                  ))}
+                </View>
+              ) : null}
+
+              {Array.isArray(layoutResult.plan.furnitureSuggestions) && layoutResult.plan.furnitureSuggestions.length ? (
+                <View style={{ marginTop: 12 }}>
+                  <Text style={{ fontWeight: "600", color: "#111827", marginBottom: 6 }}>Furniture Suggestions</Text>
+                  {layoutResult.plan.furnitureSuggestions.map((item, index) => (
+                    <Text key={index} style={{ color: "#1f2937", marginBottom: 4 }}>
+                      - {item}
+                    </Text>
+                  ))}
+                </View>
+              ) : null}
+
+              {layoutResult.plan.photoInsights?.observations?.length ? (
+                <View style={{ marginTop: 12 }}>
+                  <Text style={{ fontWeight: "600", color: "#111827", marginBottom: 6 }}>Photo Insights</Text>
+                  {layoutResult.plan.photoInsights.observations.map((item, index) => (
+                    <Text key={index} style={{ color: "#1f2937", marginBottom: 4 }}>
+                      - {item}
+                    </Text>
+                  ))}
+                  {layoutResult.plan.photoInsights.recommendedLighting ? (
+                    <Text style={{ color: "#1f2937", marginTop: 4 }}>
+                      Recommended lighting: {layoutResult.plan.photoInsights.recommendedLighting}
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+
+          {!layoutResult.plan && layoutResult.raw ? (
+            <View style={{ marginTop: 12 }}>
+              <Text style={{ fontWeight: "600", color: "#111827", marginBottom: 6 }}>AI Response</Text>
+              <Text style={{ color: "#1f2937", lineHeight: 20 }}>{layoutResult.raw}</Text>
+            </View>
+          ) : null}
         </View>
       )}
     </ScrollView>
   );
 }
+
+
