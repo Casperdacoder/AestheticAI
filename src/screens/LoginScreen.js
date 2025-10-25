@@ -36,16 +36,19 @@ export default function LoginScreen({ route, navigation }) {
     }
   };
 
-  const fetchProfileFromFirestore = async (uid) => {
+  const fetchProfileFromFirestore = async (uid, role) => {
     try {
-      const docRef = doc(db, "users", uid);
+      let collectionName = "users"; // default
+      if (role === "consultant") collectionName = "consultants";
+      else if (role === "admin") collectionName = "admins";
+
+      const docRef = doc(db, collectionName, uid);
       const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        return { uid, ...docSnap.data() };
-      } else {
-        console.log("No profile found for UID:", uid);
-        return null;
-      }
+
+      if (docSnap.exists()) return { uid, ...docSnap.data() };
+
+      console.log("No profile found for UID:", uid, "in collection:", collectionName);
+      return null;
     } catch (err) {
       console.log("Error fetching profile:", err);
       return null;
@@ -61,22 +64,41 @@ export default function LoginScreen({ route, navigation }) {
       );
       const uid = credential.user.uid;
 
-      // Load profile from cache first
+      // Load profile from cache
       let profile = await loadProfile(uid);
       if (!profile) {
-        profile = await fetchProfileFromFirestore(uid);
+        profile = await fetchProfileFromFirestore(uid, initialRole);
         if (profile) await saveProfile(uid, profile);
       }
 
+      // 1️⃣ First-time user
       if (!profile) {
         Alert.alert(
-          "Login Error",
-          "Profile not found. Please register first."
+          "First Time Login",
+          "First time user? Please register first."
         );
         return;
       }
 
-      // Ensure correct role
+      // 1.5️⃣ Block deactivated users
+      if (profile.active === false) {
+        Alert.alert(
+          "Account Inactive",
+          "Your account has been deactivated. Please contact the admin."
+        );
+        return;
+      }
+
+      // 2️⃣ Pending consultant verification
+      if (profile.role === "consultant" && profile.status !== "verified") {
+        Alert.alert(
+          "Login Pending",
+          "Your account is pending admin approval. Please wait until it is verified."
+        );
+        return;
+      }
+
+      // 3️⃣ Ensure correct role
       if (profile.role !== initialRole) {
         Alert.alert(
           "Access Denied",
@@ -85,21 +107,11 @@ export default function LoginScreen({ route, navigation }) {
         return;
       }
 
-      // Pending consultant verification
-      if (profile.role === "consultant" && profile.status !== "verified") {
+      // 4️⃣ Block normal users temporarily
+      if (profile.role === "user") {
         Alert.alert(
-          "Account Pending",
-          "Your account is pending admin approval. You cannot access the dashboard yet.",
-          [
-            {
-              text: "OK",
-              onPress: () =>
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: "Landing" }],
-                }),
-            },
-          ]
+          "Access Restricted",
+          "User login is temporarily disabled. Please use a consultant account."
         );
         return;
       }
@@ -107,13 +119,10 @@ export default function LoginScreen({ route, navigation }) {
       // Cache role locally
       await cacheUserRole(uid, profile.role);
 
-      // Navigate to correct tab navigator per role
-      const dashboardRoute =
-        profile.role === "consultant"
-          ? "DesignerTabs" // Consultant tab navigator
-          : profile.role === "admin"
-          ? "AdminTabs"    // Admin tab navigator
-          : "UserTabs";    // Regular user tab navigator
+      // Navigate to correct tab navigator
+      let dashboardRoute;
+      if (profile.role === "consultant") dashboardRoute = "DesignerTabs";
+      else if (profile.role === "admin") dashboardRoute = "AdminTabs";
 
       navigation.reset({
         index: 0,
@@ -132,9 +141,7 @@ export default function LoginScreen({ route, navigation }) {
 
       <View style={styles.content}>
         <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>
-          Sign in to continue to your account
-        </Text>
+        <Text style={styles.subtitle}>Sign in to continue to your account</Text>
 
         <Input
           placeholder="Email"

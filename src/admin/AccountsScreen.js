@@ -1,40 +1,59 @@
-// src/admin/screens/UserManagementScreenPreview.js
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+// src/admin/screens/AccountsScreen.js
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Card, Button, colors } from '../components/UI';
 import { Ionicons } from '@expo/vector-icons';
-import { auth } from "../services/firebase";
+import { auth, db } from "../services/firebase";
 import { signOut } from "firebase/auth";
 import { useNavigation } from '@react-navigation/native';
+import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
 
 export default function AccountsScreen() {
   const navigation = useNavigation();
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock users data
-  const [users, setUsers] = useState([
-    { id: '1', name: 'John Doe', email: 'john@example.com', active: true },
-    { id: '2', name: 'Jane Smith', email: 'jane@example.com', active: false },
-    { id: '3', name: 'Alex Johnson', email: 'alex@example.com', active: true },
-  ]);
+  // Fetch users from Firestore
+  useEffect(() => {
+    const usersRef = collection(db, "users");
 
-  // Toggle user status
-  const toggleUserStatus = (userId) => {
-    const user = users.find(u => u.id === userId);
-    if (!user) return;
+    const unsubscribe = onSnapshot(usersRef, (snapshot) => {
+      const fetchedUsers = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setUsers(fetchedUsers);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching users: ", error);
+      setLoading(false);
+    });
 
-    const newStatus = !user.active;
+    return () => unsubscribe();
+  }, []);
+
+  // Toggle user active status
+  const toggleUserStatus = async (userId, currentStatus) => {
+    const userRef = doc(db, "users", userId);
+    const newStatus = !currentStatus;
+
     Alert.alert(
-      newStatus ? 'Activate Account' : 'Deactivate Account',
-      `Are you sure you want to ${newStatus ? 'activate' : 'deactivate'} ${user.name}'s account?`,
+      newStatus ? "Activate Account" : "Deactivate Account",
+      `Are you sure you want to ${newStatus ? "activate" : "deactivate"} this account?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: newStatus ? 'Activate' : 'Deactivate',
-          style: 'destructive',
-          onPress: () => {
-            setUsers(prev => prev.map(u => u.id === userId ? { ...u, active: newStatus } : u));
-          }
-        }
+          text: newStatus ? "Activate" : "Deactivate",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await updateDoc(userRef, { active: newStatus });
+            } catch (error) {
+              console.error("Error updating user status: ", error);
+              Alert.alert("Error", "Failed to update user status.");
+            }
+          },
+        },
       ]
     );
   };
@@ -59,9 +78,16 @@ export default function AccountsScreen() {
     );
   };
 
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 20 }}>
-      
       {/* Hero Section */}
       <View style={styles.hero}>
         <View style={styles.heroText}>
@@ -82,11 +108,11 @@ export default function AccountsScreen() {
               <Text style={styles.userEmail}>{user.email}</Text>
             </View>
             <Button
-              title={user.active ? 'Deactivate' : 'Activate'}
-              variant={user.active ? 'solid' : 'primary'}
+              title={user.active ? "Deactivate" : "Activate"}
+              variant={user.active ? "solid" : "primary"}
               style={user.active ? styles.deactivateButton : styles.activateButton}
               textStyle={user.active ? styles.deactivateButtonText : {}}
-              onPress={() => toggleUserStatus(user.id)}
+              onPress={() => toggleUserStatus(user.id, user.active)}
             />
           </Card>
         ))}
@@ -96,38 +122,24 @@ export default function AccountsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f4f4f4',
-  },
+  container: { flex: 1, backgroundColor: '#f4f4f4' },
 
-  // Hero Section
   hero: {
     height: 160,
     backgroundColor: colors.primary,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    flexDirection: 'row', // Text + logout button
+    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: 40,
     paddingHorizontal: 20,
   },
   heroText: { flex: 1 },
-  heroTitle: {
-    color: '#fff',
-    fontSize: 25,
-    fontWeight: '900',
-  },
-  heroSubtitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#f0f0f0',
-    marginTop: 6,
-  },
+  heroTitle: { color: '#fff', fontSize: 25, fontWeight: '900' },
+  heroSubtitle: { fontSize: 16, fontWeight: '600', color: '#f0f0f0', marginTop: 6 },
   logoutButton: { marginLeft: 10, padding: 8 },
 
-  // Users
   userCard: {
     padding: 16,
     marginBottom: 16,
@@ -136,7 +148,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 12,
     backgroundColor: '#fff',
-    borderColor: 0,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 5,
@@ -147,7 +158,6 @@ const styles = StyleSheet.create({
   userName: { fontSize: 16, fontWeight: '700', color: '#2C3E50' },
   userEmail: { fontSize: 14, color: '#7F8C8D', marginTop: 2 },
 
-  // Buttons
   deactivateButton: {
     backgroundColor: colors.danger,
     borderColor: colors.danger,
@@ -156,10 +166,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 10,
   },
-  deactivateButtonText: {
-    color: '#fff',
-    fontWeight: '700',
-  },
+  deactivateButtonText: { color: '#fff', fontWeight: '700' },
   activateButton: {
     backgroundColor: colors.primary,
     paddingVertical: 12,

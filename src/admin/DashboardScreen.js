@@ -51,12 +51,13 @@ export default function DashboardScreen() {
     };
   }, []);
 
-  const cardData = [
-    { id: '1', title: 'Total Users', value: stats.totalUsers, icon: 'people', navigate: 'UpdateInformation', bgColor: '#2A9D8F' },
-    { id: '2', title: 'Pending Verifications', value: stats.pendingVerifications, icon: 'alert-circle', navigate: 'VerificationsScreen', bgColor: '#E76F51' },
-    { id: '3', title: 'Withdraw Pending', value: stats.withdrawPending, icon: 'cash-outline', navigate: 'UpdateInformation', bgColor: '#F4A261' },
-    { id: '4', title: 'Verified Consultants', value: stats.verifiedConsultants, icon: 'checkmark-circle', navigate: 'UpdateInformation', bgColor: '#264653' },
-  ];
+ const cardData = [
+  { id: '1', title: 'Total Users', value: stats.totalUsers, icon: 'people', navigate: 'AccountsScreen', bgColor: '#2A9D8F' },
+  { id: '2', title: 'Pending Verifications', value: stats.pendingVerifications, icon: 'alert-circle', navigate: 'AccountsScreen', bgColor: '#E76F51' },
+  { id: '3', title: 'Withdraw Pending', value: stats.withdrawPending, icon: 'cash-outline', navigate: 'AccountsScreen', bgColor: '#F4A261' },
+  { id: '4', title: 'Verified Consultants', value: stats.verifiedConsultants, icon: 'checkmark-circle', navigate: 'AccountsScreen', bgColor: '#264653' },
+];
+
 
   const handleLogout = () => {
     Alert.alert(
