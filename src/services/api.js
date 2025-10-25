@@ -1,25 +1,74 @@
-/* NOTE: The photo 'scan' logic is still a no-op - it never sees the actual pixels, so anything from a notebook to a selfie looks like a generic room, and the customization flow keeps falling back to the same interior template. Every attempt to patch it has been stymied because the project doesn't have a real vision service wired up (there isn't even local Python on this machine), so the analyzeRoomPhoto stub remains. Until you add a backend that can detect whether an image is an interior - or otherwise provide stronger heuristics - the app will keep returning that canned room design regardless of what you upload. */
 import axios from 'axios';
+import * as FileSystem from 'expo-file-system';
 import Constants from 'expo-constants';
 import BASE from '../config/apiBase';
 
 const extra = Constants.expoConfig?.extra ?? Constants.manifest?.extra;
+
 const api = axios.create({
   baseURL: extra?.apiBaseUrl || BASE,
   timeout: 30000
 });
 
-// Stub for now — replace with your real AI endpoint later.
-export async function generateLayout({ imageUri, roomType, measurements }) {
-  return {
-    ok: true,
-    layoutJson: { placements: [], notes: 'Sample only' },
-    palette: ['#A7C7E7', '#F4F1DE', '#81B29A'],
-    renderUrl: imageUri
-  };
+function detectMimeType(uri) {
+  if (!uri) return 'image/jpeg';
+  const normalized = uri.split('?')[0].toLowerCase();
+  if (normalized.endsWith('.png')) return 'image/png';
+  if (normalized.endsWith('.webp')) return 'image/webp';
+  if (normalized.endsWith('.heic') || normalized.endsWith('.heif')) return 'image/heic';
+  if (normalized.endsWith('.gif')) return 'image/gif';
+  return 'image/jpeg';
+}
+
+export async function generateLayout({ imageUri, prompt, roomType, measurements } = {}) {
+  let cleanupUri = null;
+
+  try {
+    let imageBase64 = null;
+    let mimeType = detectMimeType(imageUri);
+
+    if (imageUri) {
+      let localUri = imageUri;
+
+      if (imageUri.startsWith('http')) {
+        const target = `${FileSystem.cacheDirectory}hf-${Date.now()}.img`;
+        const download = await FileSystem.downloadAsync(imageUri, target);
+        localUri = download.uri;
+        cleanupUri = download.uri;
+        mimeType = download.headers?.['Content-Type'] || mimeType;
+      }
+
+      imageBase64 = await FileSystem.readAsStringAsync(localUri, {
+        encoding: FileSystem.EncodingType.Base64
+      });
+    }
+
+    const payload = {
+      prompt: prompt || '',
+      roomType: roomType || null,
+      measurements: measurements || null,
+      imageBase64,
+      imageMimeType: mimeType
+    };
+
+    const response = await api.post('/api/hf/layout', payload);
+    if (!response.data?.success) {
+      throw new Error(response.data?.error || 'Layout generation failed');
+    }
+
+    return response.data;
+  } catch (error) {
+    console.warn('generateLayout error', error);
+    throw error;
+  } finally {
+    if (cleanupUri) {
+      try {
+        await FileSystem.deleteAsync(cleanupUri, { idempotent: true });
+      } catch (cleanupError) {
+        console.warn('Failed to clean up temp image', cleanupError);
+      }
+    }
+  }
 }
 
 export default api;
-
-
-
