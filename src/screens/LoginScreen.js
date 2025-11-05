@@ -1,143 +1,128 @@
 ﻿// src/screens/LoginScreen.js
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Alert, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, Alert, StyleSheet } from "react-native";
 import { Screen, Input, Button, colors } from "../components/UI";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../services/firebase";
-import { cacheUserRole, getCachedUserRole } from "../services/userCache";
-import { loadProfile, saveProfile, fetchProfileFromFirestore, cacheProfileLocally } from "../services/profileStore";
+import { auth, db } from "../services/firebase";
+import { cacheUserRole } from "../services/userCache";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { doc, getDoc } from "firebase/firestore";
+
+const PROFILE_KEY_PREFIX = "aestheticai:user-profile:";
 
 export default function LoginScreen({ route, navigation }) {
   const initialRole = route?.params?.role || "user";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const sanitizeEmail = (value) => value?.replace(/\s+/g, "") ?? "";
+  const loadProfile = async (uid) => {
+    try {
+      const json = await AsyncStorage.getItem(`${PROFILE_KEY_PREFIX}${uid}`);
+      return json ? JSON.parse(json) : null;
+    } catch (err) {
+      console.log("Error loading cached profile:", err);
+      return null;
+    }
+  };
+
+  const saveProfile = async (uid, profile) => {
+    try {
+      await AsyncStorage.setItem(
+        `${PROFILE_KEY_PREFIX}${uid}`,
+        JSON.stringify(profile)
+      );
+    } catch (err) {
+      console.log("Error saving profile:", err);
+    }
+  };
+
+  const fetchProfileFromFirestore = async (uid, role) => {
+    try {
+      let collectionName = "users"; // default
+      if (role === "consultant") collectionName = "consultants";
+      else if (role === "admin") collectionName = "admins";
+
+      const docRef = doc(db, collectionName, uid);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) return { uid, ...docSnap.data() };
+
+      console.log("No profile found for UID:", uid, "in collection:", collectionName);
+      return null;
+    } catch (err) {
+      console.log("Error fetching profile:", err);
+      return null;
+    }
+  };
 
   const login = async () => {
-    if (isSubmitting) {
-      return;
-    }
-
     try {
-      setIsSubmitting(true);
-      const normalizedEmail = sanitizeEmail(email);
-      setEmail(normalizedEmail);
-
       const credential = await signInWithEmailAndPassword(
         auth,
-        normalizedEmail,
+        email.trim(),
         password
       );
       const uid = credential.user.uid;
-      const userEmail = credential.user.email || normalizedEmail;
-      const fallbackName =
-        credential.user.displayName ||
-        (userEmail ? userEmail.split('@')[0] : 'User');
 
-      const [cachedProfile, cachedRole] = await Promise.all([
-        loadProfile(uid),
-        getCachedUserRole(uid)
-      ]);
-
-      // Load profile from cache first
-      let profile = cachedProfile;
-      let fetchError = null;
+      // Load profile from cache
+      let profile = await loadProfile(uid);
       if (!profile) {
-        const fetchResult = await fetchProfileFromFirestore(uid, initialRole);
-        const { profile: fetchedProfile, error } = fetchResult;
-        fetchError = error;
-        profile = fetchedProfile;
-
-        if (!profile && fetchError?.code === "unavailable" && cachedRole) {
-          profile = {
-            uid,
-            role: cachedRole,
-            email: userEmail,
-            name: fallbackName,
-            status: "offline",
-            offline: true
-          };
-          await cacheProfileLocally(uid, profile);
-          console.log("Proceeding with cached role due to offline state.");
-        } else if (!profile && fetchError?.code === "unavailable") {
-          profile = {
-            uid,
-            role: initialRole,
-            email: userEmail,
-            name: fallbackName,
-            status: "offline",
-            offline: true
-          };
-          await cacheProfileLocally(uid, profile);
-          console.log("Proceeding with inferred role due to offline state.");
-        }
-
-        if (profile && !profile.offline) {
-          try {
-            await saveProfile(uid, profile);
-          } catch (saveError) {
-            console.warn("Failed to persist profile", saveError);
-          }
-        }
+        profile = await fetchProfileFromFirestore(uid, initialRole);
+        if (profile) await saveProfile(uid, profile);
       }
 
+      // 1️⃣ First-time user
       if (!profile) {
         Alert.alert(
-          "Login Error",
-          "Profile not found. Please register first."
+          "First Time Login",
+          "First time user? Please register first."
         );
         return;
       }
 
-      const resolvedRole = profile.role || cachedRole || initialRole;
-      if (!resolvedRole) {
+      // 1.5️⃣ Block deactivated users
+      if (profile.active === false) {
         Alert.alert(
-          "Login Error",
-          "We could not determine your account role. Please contact support."
+          "Account Inactive",
+          "Your account has been deactivated. Please contact the admin."
         );
         return;
       }
 
-      // Ensure correct role
-      if (resolvedRole !== initialRole) {
+      // 2️⃣ Pending consultant verification
+      if (profile.role === "consultant" && profile.status !== "verified") {
+        Alert.alert(
+          "Login Pending",
+          "Your account is pending admin approval. Please wait until it is verified."
+        );
+        return;
+      }
+
+      // 3️⃣ Ensure correct role
+      if (profile.role !== initialRole) {
         Alert.alert(
           "Access Denied",
-          `This account is registered as a ${resolvedRole}. Please use the correct login page.`
+          `This account is registered as a ${profile.role}. Please use the correct login page.`
         );
         return;
       }
 
-      // Pending consultant verification
-      if (resolvedRole === "consultant" && profile.status !== "verified") {
+      // 4️⃣ Block normal users temporarily
+      if (profile.role === "user") {
         Alert.alert(
-          "Account Pending",
-          "Your account is pending admin approval. You cannot access the dashboard yet.",
-          [
-            {
-              text: "OK",
-              onPress: () =>
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: "Landing" }],
-                }),
-            },
-          ]
+          "Access Restricted",
+          "User login is temporarily disabled. Please use a consultant account."
         );
         return;
       }
 
       // Cache role locally
-      await cacheUserRole(uid, resolvedRole);
+      await cacheUserRole(uid, profile.role);
 
-      // Navigate to correct tab navigator per role
-      const dashboardRoute =
-        resolvedRole === "consultant"
-          ? "DesignerTabs" // Consultant tab navigator
-          : resolvedRole === "admin"
-          ? "AdminTabs"    // Admin tab navigator
-          : "UserTabs";    // Regular user tab navigator
+      // Navigate to correct tab navigator
+      let dashboardRoute;
+      if (profile.role === "consultant") dashboardRoute = "DesignerTabs";
+      else if (profile.role === "admin") dashboardRoute = "AdminTabs";
 
       navigation.reset({
         index: 0,
@@ -145,8 +130,6 @@ export default function LoginScreen({ route, navigation }) {
       });
     } catch (error) {
       Alert.alert("Login Error", error.message);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -158,9 +141,7 @@ export default function LoginScreen({ route, navigation }) {
 
       <View style={styles.content}>
         <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>
-          Sign in to continue to your account
-        </Text>
+        <Text style={styles.subtitle}>Sign in to continue to your account</Text>
 
         <Input
           placeholder="Email"
@@ -186,17 +167,7 @@ export default function LoginScreen({ route, navigation }) {
           <Text style={styles.link}>Forgot Password?</Text>
         </TouchableOpacity>
 
-        <Button
-          title={isSubmitting ? "Signing in..." : "Login"}
-          onPress={login}
-          disabled={isSubmitting}
-        />
-
-        {isSubmitting && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={colors.primary} />
-          </View>
-        )}
+        <Button title="Login" onPress={login} />
 
         <TouchableOpacity
           onPress={() => {
@@ -223,7 +194,7 @@ const styles = StyleSheet.create({
     marginBottom: 100,
     margin: 10,
   },
-  content: { flex: 1, padding: 10, position: "relative" },
+  content: { flex: 1, padding: 10 },
   title: {
     color: colors.subtleText,
     fontSize: 30,
@@ -251,12 +222,5 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     fontSize: 15,
     fontFamily: "serif",
-  },
-  loadingOverlay: {
-    position: "absolute",
-    top: "50%",
-    left: 0,
-    right: 0,
-    alignItems: "center",
   },
 });

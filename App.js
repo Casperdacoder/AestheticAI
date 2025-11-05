@@ -254,6 +254,8 @@ export default function App() {
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="Security" component={SecurityScreen} />
         <Stack.Screen name="Chat" component={ChatScreen} />
+
+        <Stack.Screen name="AccountsScreen" component={AccountsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
