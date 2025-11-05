@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, Switch, Alert, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { Screen, Input, Button, colors } from '../components/UI';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth, db } from '../services/firebase';
+import { serverTimestamp } from 'firebase/firestore';
+import { auth } from '../services/firebase';
 import { cacheUserRole } from '../services/userCache';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { saveProfile } from '../services/profileStore';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -17,11 +18,29 @@ export default function RegisterConScreen({ navigation }) {
   const [confirm, setConfirm] = useState('');
   const [agree, setAgree] = useState(false);
 
+  const sanitizeEmail = (value) => value?.replace(/\s+/g, '') ?? '';
+
+  const getFriendlyErrorMessage = (error) => {
+    const code = error?.code;
+    switch (code) {
+      case 'auth/email-already-in-use':
+        return 'That email already has an account. Please sign in or use a different email.';
+      case 'auth/invalid-email':
+        return 'The email address looks invalid. Please double-check it.';
+      case 'auth/weak-password':
+        return 'Password is too weak. Please choose one with at least 6 characters.';
+      default:
+        return error?.message ?? 'Unable to create your consultant account. Please try again.';
+    }
+  };
+
   const validate = () => {
     if (!fullName.trim()) { Alert.alert('Registration', 'Enter your full name'); return false; }
     if (!provinceCity.trim()) { Alert.alert('Registration', 'Enter your province/city'); return false; }
     if (!country.trim()) { Alert.alert('Registration', 'Enter your country'); return false; }
-    if (!EMAIL_REGEX.test(email.trim())) { Alert.alert('Registration', 'Enter a valid email'); return false; }
+    const normalizedEmail = sanitizeEmail(email);
+    if (normalizedEmail !== email) { setEmail(normalizedEmail); }
+    if (!EMAIL_REGEX.test(normalizedEmail)) { Alert.alert('Registration', 'Enter a valid email'); return false; }
     if (pass.length < 6) { Alert.alert('Registration', 'Password must be at least 6 characters'); return false; }
     if (pass !== confirm) { Alert.alert('Registration', "Passwords don't match"); return false; }
     if (!agree) { Alert.alert('Terms', 'Please agree to Terms & Conditions'); return false; }
@@ -32,26 +51,64 @@ export default function RegisterConScreen({ navigation }) {
     if (!validate()) return;
 
     try {
-      const credential = await createUserWithEmailAndPassword(auth, email.trim(), pass);
+      const normalizedEmail = sanitizeEmail(email);
+      if (normalizedEmail !== email) {
+        setEmail(normalizedEmail);
+      }
+
+      const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, pass);
       await updateProfile(credential.user, { displayName: fullName });
 
       const profile = {
+        uid: credential.user.uid,
         fullName,
         provinceCity,
         country,
-        email: email.trim(),
+        email: normalizedEmail,
         role: 'consultant',
         status: 'pending',
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       };
 
-      await setDoc(doc(db, 'consultants', credential.user.uid), profile);
+      let saveError = null;
+      try {
+        await saveProfile(credential.user.uid, profile, 'consultant');
+      } catch (error) {
+        saveError = error;
+        if (error?.code !== 'unavailable') {
+          throw error;
+        }
+      }
+
       await cacheUserRole(credential.user.uid, 'consultant');
 
-      navigation.navigate('VerificationForm', { uid: credential.user.uid });
+      if (saveError?.code === 'unavailable') {
+        Alert.alert(
+          'Limited Connectivity',
+          'Consultant account created, but profile details will finish syncing when you reconnect.'
+        );
+      }
 
+      navigation.navigate('VerificationForm', { uid: credential.user.uid });
     } catch (error) {
-      Alert.alert('Register Error', error.message);
+      if (error?.code === 'auth/email-already-in-use') {
+        Alert.alert(
+          'Account Exists',
+          'That email already has a consultant account. Do you want to sign in instead?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Go to Login',
+              onPress: () => navigation.navigate('Login', { role: 'consultant' })
+            }
+          ]
+        );
+        return;
+      }
+
+      console.warn('Consultant register error', error);
+      Alert.alert('Register Error', getFriendlyErrorMessage(error));
     }
   };
 
@@ -80,7 +137,7 @@ export default function RegisterConScreen({ navigation }) {
 
         <Button title="Continue" onPress={register} style={styles.button} />
 
-        <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.footerLink}>
+        <TouchableOpacity onPress={() => navigation.navigate('Login', { role: 'consultant' })} style={styles.footerLink}>
           <Text style={styles.footer}>Already have an account? Login</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -135,7 +192,9 @@ const styles = StyleSheet.create({
   button: {
     marginBottom: 30,
   },
-
+  footerLink: {
+    marginTop: 24,
+  },
   footer: {
     textAlign: 'center',
     color: '#0F3E48',

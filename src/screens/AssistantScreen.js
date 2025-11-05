@@ -1,4 +1,4 @@
-ï»¿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Screen, Toast, colors } from '../components/UI';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { generateLayout } from '../services/api';
 import {
   ensureCameraPermission,
   ensureMediaLibraryPermission,
@@ -26,6 +27,7 @@ export default function AssistantScreen({ navigation }) {
   const [text, setText] = useState('');
   const [saved, setSaved] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState([
     { id: '1', type: 'ai', text: 'Welcome! Ready to design your space with AestheticAI' },
     { id: '2', type: 'ai', text: 'Please provide your room details to start' },
@@ -41,15 +43,128 @@ export default function AssistantScreen({ navigation }) {
       const aiMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        text: 'Got it! Iâ€™ll start analyzing your design preferences.',
+        text: 'Got it! I’ll keep that in mind when you share a photo.',
       };
       setMessages(prev => [...prev, aiMessage]);
-    }, 800);
+    }, 600);
   };
 
   const saveDesign = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 1600);
+  };
+
+  const formatDesignResponse = (result) => {
+    if (!result) {
+      return 'I could not generate a design suggestion right now.';
+    }
+
+    const sections = [];
+
+    if (result.caption) {
+      sections.push(`Vision summary: ${result.caption}`);
+    }
+
+    if (result.warning) {
+      sections.push(`Note: ${result.warning}`);
+    }
+
+    if (result.plan) {
+      const {
+        styleName,
+        styleSummary,
+        colorPalette,
+        layoutIdeas,
+        decorTips,
+        furnitureSuggestions,
+        photoInsights,
+      } = result.plan;
+
+      if (styleName || styleSummary) {
+        sections.push(
+          ['Style:', [styleName, styleSummary].filter(Boolean).join(' — ')].filter(Boolean).join(' ')
+        );
+      }
+
+      if (Array.isArray(colorPalette) && colorPalette.length) {
+        sections.push(`Palette: ${colorPalette.join(', ')}`);
+      }
+
+      if (Array.isArray(layoutIdeas) && layoutIdeas.length) {
+        sections.push(
+          `Layout ideas:\n${layoutIdeas
+            .map((idea) => `- ${idea.room ? `${idea.room}: ` : ''}${idea.summary}`)
+            .join('\n')}`
+        );
+      }
+
+      if (Array.isArray(decorTips) && decorTips.length) {
+        sections.push(`Decor tips:\n${decorTips.map((tip) => `- ${tip}`).join('\n')}`);
+      }
+
+      if (Array.isArray(furnitureSuggestions) && furnitureSuggestions.length) {
+        sections.push(`Furniture suggestions:\n${furnitureSuggestions.map((item) => `- ${item}`).join('\n')}`);
+      }
+
+      if (photoInsights?.observations?.length || photoInsights?.recommendedLighting) {
+        const insights = [];
+        if (Array.isArray(photoInsights?.observations) && photoInsights.observations.length) {
+          insights.push(...photoInsights.observations.map((item) => `- ${item}`));
+        }
+        if (photoInsights?.recommendedLighting) {
+          insights.push(`Recommended lighting: ${photoInsights.recommendedLighting}`);
+        }
+        sections.push(`Photo insights:\n${insights.join('\n')}`);
+      }
+    } else if (result.raw) {
+      sections.push(result.raw);
+    }
+
+    return sections.length ? sections.join('\n\n') : 'I could not parse the design suggestion.';
+  };
+
+  const getLatestUserPrompt = () => {
+    if (text.trim()) {
+      return text.trim();
+    }
+    const lastUser = [...messages].reverse().find((message) => message.type === 'user');
+    return lastUser?.text?.trim?.() || '';
+  };
+
+  const requestDesignFromImage = async (uri) => {
+    if (!uri) {
+      return;
+    }
+
+    setLoading(true);
+    const promptText =
+      getLatestUserPrompt() ||
+      'Generate an interior style, layout, decor tips, and furniture suggestions based on this photo.';
+
+    try {
+      const result = await generateLayout({
+        imageUri: uri,
+        prompt: promptText,
+      });
+
+      const formatted = formatDesignResponse(result);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}-ai`,
+          type: 'ai',
+          text: formatted,
+        },
+      ]);
+    } catch (error) {
+      console.warn('generateLayout error', error);
+      Alert.alert(
+        'Design suggestion unavailable',
+        error?.message || 'We could not generate a suggestion for this photo. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const openImagePicker = async (type) => {
@@ -82,7 +197,9 @@ export default function AssistantScreen({ navigation }) {
         return;
       }
     }
-    if (!result.canceled) setSaved(true);
+    if (!result.canceled && result.assets?.length) {
+      await requestDesignFromImage(result.assets[0].uri);
+    }
   };
 
   const renderItem = ({ item }) => (
@@ -131,6 +248,13 @@ export default function AssistantScreen({ navigation }) {
         renderItem={renderItem}
         contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
+        ListFooterComponent={
+          loading ? (
+            <Text style={styles.loadingText}>
+              Analyzing your photo and preparing a tailored design suggestion...
+            </Text>
+          ) : null
+        }
       />
 
       {/* Buttons */}
@@ -320,6 +444,12 @@ const styles = StyleSheet.create({
     color: '#0F3E48',
     fontSize: 14,
     paddingVertical: 8,
+  },
+  loadingText: {
+    color: '#0F3E48',
+    marginHorizontal: 24,
+    marginTop: 12,
+    fontStyle: 'italic',
   },
 
   modalOverlay: {

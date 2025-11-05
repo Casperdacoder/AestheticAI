@@ -1,10 +1,11 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, Switch, Alert, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { Screen, Input, Button, colors } from '../components/UI';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth, db } from '../services/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { serverTimestamp } from 'firebase/firestore';
+import { auth } from '../services/firebase';
 import { cacheUserRole } from '../services/userCache';
+import { saveProfile } from '../services/profileStore';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -16,12 +17,35 @@ export default function RegisterScreen({ route, navigation }) {
   const [confirm, setConfirm] = useState('');
   const [agree, setAgree] = useState(false);
 
+  const sanitizeEmail = (value) => value?.replace(/\s+/g, '') ?? '';
+
+  const getFriendlyErrorMessage = (error) => {
+    const code = error?.code;
+    switch (code) {
+      case 'auth/email-already-in-use':
+        return 'That email is already registered. Try signing in instead.';
+      case 'auth/invalid-email':
+        return 'The email address looks invalid. Please double-check it.';
+      case 'auth/weak-password':
+        return 'Password is too weak. Please choose one with at least 6 characters.';
+      case 'permission-denied':
+      case 'permission-denied/forbidden':
+        return 'You do not have permission to complete this action. Please contact support.';
+      default:
+        return error?.message ?? 'Unable to create your account. Please try again.';
+    }
+  };
+
   const validate = () => {
     if (!name.trim()) {
       Alert.alert('Registration', 'Please enter your name.');
       return false;
     }
-    if (!EMAIL_REGEX.test(email.trim())) {
+    const normalizedEmail = sanitizeEmail(email);
+    if (normalizedEmail !== email) {
+      setEmail(normalizedEmail);
+    }
+    if (!EMAIL_REGEX.test(normalizedEmail)) {
       Alert.alert('Registration', 'Please enter a valid email address.');
       return false;
     }
@@ -44,34 +68,65 @@ export default function RegisterScreen({ route, navigation }) {
     if (!validate()) return;
 
     try {
-      // 1️⃣ Create Firebase Auth user
-      const credential = await createUserWithEmailAndPassword(auth, email.trim(), pass);
+      const normalizedEmail = sanitizeEmail(email);
+      if (normalizedEmail !== email) {
+        setEmail(normalizedEmail);
+      }
+
+      const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, pass);
       await updateProfile(credential.user, { displayName: name });
 
-      // 2️⃣ Prepare user profile for Firestore
       const profile = {
         uid: credential.user.uid,
         name,
-        email: email.trim(),
-        role,           // 'user'
+        email: normalizedEmail,
+        role,
         subscription_type: 'Free',
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       };
 
-      // 3️⃣ Save to Firestore
-      await setDoc(doc(db, 'users', credential.user.uid), profile);
+      let saveError = null;
+      try {
+        await saveProfile(credential.user.uid, profile, role);
+      } catch (error) {
+        saveError = error;
+        if (error?.code !== 'unavailable') {
+          throw error;
+        }
+      }
 
-      // 4️⃣ Cache role locally (for navigation)
       await cacheUserRole(credential.user.uid, role);
 
-      // 5️⃣ Navigate to User dashboard
+      if (saveError?.code === 'unavailable') {
+        Alert.alert(
+          'Limited Connectivity',
+          'Account created, but profile sync will resume once you are back online.'
+        );
+      }
+
       navigation.reset({
         index: 0,
         routes: [{ name: 'UserTabs' }],
       });
-
     } catch (error) {
-      Alert.alert('Register Error', error.message);
+      if (error?.code === 'auth/email-already-in-use') {
+        Alert.alert(
+          'Account Exists',
+          'That email is already registered. Would you like to sign in instead?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Go to Login',
+              onPress: () => navigation.navigate('Login', { role })
+            }
+          ]
+        );
+        return;
+      }
+
+      console.warn('Register error', error);
+      Alert.alert('Register Error', getFriendlyErrorMessage(error));
     }
   };
 
@@ -142,8 +197,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#0F3E48',
-        marginStart: 12,
-
+    marginStart: 12,
     fontSize: 29,
     fontWeight: '900',
     fontFamily: 'serif',

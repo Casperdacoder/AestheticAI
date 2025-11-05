@@ -1,5 +1,5 @@
 import axios from 'axios';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import Constants from 'expo-constants';
 import BASE from '../config/apiBase';
 
@@ -38,8 +38,9 @@ export async function generateLayout({ imageUri, prompt, roomType, measurements 
         mimeType = download.headers?.['Content-Type'] || mimeType;
       }
 
+      const base64Encoding = FileSystem?.EncodingType?.Base64 ?? 'base64';
       imageBase64 = await FileSystem.readAsStringAsync(localUri, {
-        encoding: FileSystem.EncodingType.Base64
+        encoding: base64Encoding
       });
     }
 

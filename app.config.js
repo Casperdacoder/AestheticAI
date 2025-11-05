@@ -1,4 +1,15 @@
-﻿import 'dotenv/config';
+import 'dotenv/config';
+
+const enableRemoteUpdates = process.env.EXPO_UPDATES_ENABLED !== 'false';
+const updatesConfig = enableRemoteUpdates
+  ? {
+      url: 'https://u.expo.dev/e34071e2-f237-4975-a8a9-354d342d5e59',
+      checkAutomatically: 'ON_ERROR_RECOVERY',
+      fallbackToCacheTimeout: 30000
+    }
+  : {
+      enabled: false
+    };
 
 export default {
   expo: {
@@ -43,12 +54,8 @@ export default {
     },
     assetBundlePatterns: ['**/*'],
 
-    // ✅ Corrected EAS Update config
-    updates: {
-      url: "https://u.expo.dev/e34071e2-f237-4975-a8a9-354d342d5e59",
-      checkAutomatically: "ON_LOAD",
-      fallbackToCacheTimeout: 0
-    },
+    // EAS Update configuration
+    updates: updatesConfig,
     runtimeVersion: {
       policy: "appVersion"
     },

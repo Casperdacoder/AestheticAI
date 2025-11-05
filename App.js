@@ -207,10 +207,6 @@ function AdminTabsNavigator() {
 // Main App
 // ------------------------
 export default function App() {
-  useEffect(() => {
-    console.warn('⚠️ Missing config validation skipped (no validator found).');
-  }, []);
-
   return (
     <NavigationContainer>
       <Stack.Navigator
